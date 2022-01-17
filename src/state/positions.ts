@@ -1,4 +1,4 @@
-import { publicKey, decimal128, Parser } from '../util/layout'
+import { publicKey, decimalU128, Parser } from '../util/layout'
 import { struct, s32, u8, blob, seq } from "buffer-layout"
 import Decimal from 'decimal.js';
 import { AccountInfo, PublicKey } from '@solana/web3.js';
@@ -38,11 +38,11 @@ export const PositionLayout = struct<Position>(
         publicKey('nftTokenId'),
         s32('lowerTick'),
         s32('upperTick'),
-        decimal128('liquity'),
-        decimal128('feeGrowthInsideALast', 16),
-        decimal128('feeGrowthInsideBLast', 16),
-        decimal128('tokenAFee', 16),
-        decimal128('tokenBFee', 16),
+        decimalU128('liquity'),
+        decimalU128('feeGrowthInsideALast', 16),
+        decimalU128('feeGrowthInsideBLast', 16),
+        decimalU128('tokenAFee', 16),
+        decimalU128('tokenBFee', 16),
     ],
     "position"
 )

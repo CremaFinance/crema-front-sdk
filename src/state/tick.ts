@@ -35,10 +35,10 @@ export const TickLayout = struct<Tick>(
     [
         s32('tick'),
         decimalU128('tickPrice', 12),
-        decimal128('liquityGross'),
+        decimalU128('liquityGross'),
         decimal128('liquityNet'),
-        decimal128('feeGrowthOutsideA', 16),
-        decimal128('feeGrowthOutsideB', 16),
+        decimalU128('feeGrowthOutsideA', 16),
+        decimalU128('feeGrowthOutsideB', 16),
     ],
     'tickInfo'
 )
