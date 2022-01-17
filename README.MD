@@ -1,8 +1,8 @@
 #
 
-## 1. 流动性计算公式
+## 1. Liquidity Calculation Formula
 
-假设当前价格为$P_{c}$，用户提供提供流动性的价格区间为$[P_{a},P_{b}]$
+Assuming the current price is $P_{c}$，the price range that users add liquidity in is $[P_{a},P_{b}]$
 
 ---
 $
