@@ -1,25 +1,37 @@
-import { url } from "../src/util/url";
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import { TokenSwap } from '../src/tokenSwap';
 import Decimal from "decimal.js";
-import { calculateLiquity, calculateLiquityOnlyA, getNearestTickByPrice } from "../src/math";
 import invariant from "tiny-invariant";
-import { Token } from "@solana/spl-token";
+import * as fs from "fs";
 
-export const PROGRAM_ID = new PublicKey("5Pj7hESxMKuoZGztQL5Ab3KtDsGsKL5MxkypY4k7PeFE")
-export const TOKEN_SWAP_KEY = new PublicKey("2xiK9cKwamxfhyUwJPoSEN3pihdnK9NZ7Svos96fnBEE")
-export const PAYER = Keypair.fromSecretKey(new Uint8Array([102, 88, 110, 202, 187, 128, 209, 4, 12, 97, 105, 56, 81, 168, 150, 190, 38, 221, 82, 60, 185, 68, 193, 113, 233, 32, 224, 193, 169, 199, 225, 31, 42, 102, 27, 129, 168, 23, 103, 67, 169, 227, 105, 103, 96, 76, 109, 223, 245, 23, 241, 63, 191, 236, 51, 107, 246, 232, 122, 64, 71, 30, 77, 183]))
-export const TOKEN_A_MINT = new PublicKey("5smfGJccdpeetdReFzX8qTvvxRAQMy64swym8DSPhvRp")
-export const TOKEN_B_MINT = new PublicKey("6LtDq6wKa1a585os9xxFrVdpWWNGxG37K9dxe6en8mTn")
+export const PROGRAM_ID = new PublicKey("6MLxLqiXaaSUpkgMnWDTuejNZEz3kE7k2woyHGVFw319")
+export const PAYER = KPFromFile("./.secret")
+
+// mainnet-beta
+// export const TOKEN_SWAP_KEY = new PublicKey("8J3avAjuRfL2CYFKKDwhhceiRoajhrHv9kN5nUiEnuBG")
+//
+// devnet
+export const TOKEN_SWAP_KEY = new PublicKey("8BHKY3e1N2EmH89yXuxhYhd2aP2Ex5xhoZUJ4eUTsekY")
+
+
+export const TOKEN_A_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")
+export const TOKEN_B_MINT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")
 export const USER_TOKEN_A = new PublicKey("Gwv36X1tA3bzJNi8zdznBHVhaUcJNAzMCDkPNoctDJCu")
 export const USER_TOKEN_B = new PublicKey("D5H3s2SAKQjLZQRFPNVxCAy7MK8svvAJcJ3VvXnbZvhc")
 export const TICK_SPACE = 60
 export const TOKEN_DECIMAL = 1000000000
 
+export function KPFromFile(path: string): Keypair {
+    const secret = fs.readFileSync(path, "utf-8");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const arr: Uint8Array = JSON.parse(secret);
+    return Keypair.fromSecretKey(Uint8Array.from(arr));
+}
+
 /**
  * Create a token swap
- * @param conn 
- * @returns 
+ * @param conn
+ * @returns
  */
 export async function createTokenSwap(conn: Connection): Promise<TokenSwap | null> {
     const fee = new Decimal(0.05)
@@ -49,10 +61,10 @@ export async function mintPosition(swap: TokenSwap) {
     let maximumAmountB = desiredAmountB.mul(1.05)
     let transferAuthority = new Keypair()
     if (maximumAmountA.greaterThan(0)) {
-        await swap.approve(USER_TOKEN_A, TOKEN_A_MINT, maximumAmountA, transferAuthority)
+        await swap.approve(USER_TOKEN_A, swap.tokenSwapInfo.tokenAMint, maximumAmountA, transferAuthority)
     }
     if (maximumAmountB.greaterThan(0)) {
-        await swap.approve(USER_TOKEN_B, TOKEN_B_MINT, maximumAmountB, transferAuthority)
+        await swap.approve(USER_TOKEN_B, swap.tokenSwapInfo.tokenBMint, maximumAmountB, transferAuthority)
     }
     console.log(
         {
@@ -153,8 +165,8 @@ export async function swap(swap: TokenSwap) {
     let transferAuthority = new Keypair()
     let { userSrc, userDst } = direct === 1 ? { userSrc: USER_TOKEN_A, userDst: USER_TOKEN_B } : { userSrc: USER_TOKEN_B, userDst: USER_TOKEN_A }
     direct === 1 ?
-        await swap.approve(USER_TOKEN_A, TOKEN_A_MINT, amountIn.mul(1.05), transferAuthority) :
-        await swap.approve(USER_TOKEN_B, TOKEN_B_MINT, amountIn.mul(1.05), transferAuthority)
+        await swap.approve(USER_TOKEN_A, swap.tokenSwapInfo.tokenAMint, amountIn.mul(1.05), transferAuthority) :
+        await swap.approve(USER_TOKEN_B, swap.tokenSwapInfo.tokenBMint, amountIn.mul(1.05), transferAuthority)
 
 
     //await swap.approveB(USER_TOKEN_B, amountIn)

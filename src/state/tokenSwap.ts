@@ -69,7 +69,9 @@ export const isTokenSwapAccount = (info: AccountInfo<Buffer>): boolean => {
 }
 
 export const parseTokenSwapAccount: Parser<TokenSwapAccount> = (pubkey: PublicKey, info: AccountInfo<Buffer>) => {
-    if (!isTokenSwapAccount(info)) return
+    if (!isTokenSwapAccount(info)) {
+        return
+    }
 
     const buffer = Buffer.from(info.data)
     const tokenSwapAccount = TokenSwapAccountLayout.decode(buffer)

@@ -1,19 +1,10 @@
-import Decimal from 'decimal.js'
+import { Decimal } from 'decimal.js'
 import invariant from 'tiny-invariant'
 import { Tick } from '../state'
 
-Decimal.config(
-    {
-        precision: 64,
-        rounding: Decimal.ROUND_HALF_DOWN,
-        toExpNeg: -64,
-        toExpPos: 64,
-    }
-)
-
 // The max ticker
-// export const MAX_TICK = 443636
-export const MAX_TICK = 552648
+export const MAX_TICK = 443632
+// export const MAX_TICK = 552648
 
 // The min ticker
 export const MIN_TICK = -MAX_TICK
@@ -29,12 +20,12 @@ export const MIN_SQRT_PRICE = PIECES.pow(MIN_TICK / 2)
 
 export const TICK_INFO_SPAN = 84000
 
-/** 
-* Get the tick by sqrt price
-*
-* @param sqrtPrice the sqrt price
-* @return the tick
-*/
+/**
+ * Get the tick by sqrt price
+ *
+ * @param sqrtPrice the sqrt price
+ * @return the tick
+ */
 export function sqrtPrice2Tick(sqrtPrice: Decimal): number {
     invariant(sqrtPrice.lessThan(MAX_SQRT_PRICE), `Invalid sqrtPrice: ${sqrtPrice.toString()} Max: ${MAX_SQRT_PRICE}, too large`)
     invariant(sqrtPrice.greaterThan(MIN_SQRT_PRICE), `Invalid sqrtPrice: ${sqrtPrice.toString()}, Min: ${MIN_SQRT_PRICE}, too small`)
@@ -43,7 +34,7 @@ export function sqrtPrice2Tick(sqrtPrice: Decimal): number {
 
 /**
  * Get the sqrt price by tick
- * @param tick the tick 
+ * @param tick the tick
  * @returns the sqrt price
  */
 export function tick2SqrtPrice(tick: number): Decimal {
@@ -73,7 +64,7 @@ export function tick2Price(tick: number): Decimal {
 }
 
 /**
- * Get the nearest valid tick 
+ * Get the nearest valid tick
  * @deprecated please use {@link getNearestTickBySqrtPrice Or getNearestTickByPrice} instead
  * @param sqrtPrice the sqrt price
  * @param tickSpace the tick space
@@ -122,7 +113,7 @@ export function getNearestTickByPrice(price: Decimal, tickSpace: number): number
 
 
 /**
- * 
+ *
  * @param ticks The tick array of token swap
  * @param currentSqrtPrice The current sqrt price of token swap
  * @param fee The fee rate of token swap
@@ -139,6 +130,7 @@ export function calculateSwapA2B(
 ): {
     amountOut: Decimal,
     amountUsed: Decimal,
+    feeUsed: Decimal,
     afterPrice: Decimal,
     afterLiquity: Decimal,
 } {
@@ -149,40 +141,51 @@ export function calculateSwapA2B(
     invariant(currentTick > ticks[0].tick, "out of ticks")
     let liquity = currentLiquity
     let out = new Decimal(0)
-    // let rate = new Decimal(1).add(fee)
-    let rate = fee.div(new Decimal(1).sub(fee)).add(new Decimal(1))
-    let remain = amountIn.div(rate)
+    let remind = amountIn
+    let remindWithFee = new Decimal(0)
+    let feeUsed = new Decimal(0)
     let amountUsed = new Decimal(0)
+    let upperSqrtPrice = currentSqrtPrice
     for (let i = ticks.length - 1; i >= 0; i--) {
         if (liquity.equals(new Decimal(0))) {
             currentTick = ticks[i].tick
             liquity = liquity.sub(ticks[i].liquityNet)
+            upperSqrtPrice = ticks[i].tickPrice
             continue
         }
         if (currentTick <= ticks[i].tick) {
             continue
         }
-        let lowerSqrtPrice = tick2SqrtPrice(ticks[i].tick)
-        let upperSqrtPrice = tick2SqrtPrice(currentTick)
+        let lowerSqrtPrice = ticks[i].tickPrice
         let maxAmountIn = maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity)
-
-        if (maxAmountIn.greaterThanOrEqualTo(remain)) {
-            let { amountOut, afterSqrtPrice } = swapA2B(lowerSqrtPrice, upperSqrtPrice, liquity, remain)
-            amountUsed = amountUsed.add(remain.mul(rate))
-            return { amountOut: out.add(amountOut), amountUsed, afterPrice: afterSqrtPrice.pow(2), afterLiquity: liquity }
+        let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN)
+        if (remind.lessThan(fullStepFee)) {
+            remindWithFee = remind
         } else {
-            remain = remain.sub(maxAmountIn)
-            amountUsed = amountUsed.add(maxAmountIn.mul(rate))
+            remindWithFee = remind.sub(fullStepFee)
+        }
+
+        if (maxAmountIn.greaterThanOrEqualTo(remindWithFee)) {
+            remindWithFee = remind.mul(new Decimal(1).sub(fee)).toDP(0, Decimal.ROUND_UP)
+            let { amountOut, afterSqrtPrice } = swapA2B(upperSqrtPrice, liquity, remindWithFee)
+            amountUsed = amountUsed.add(remind)
+            feeUsed = feeUsed.add(remind.sub(remindWithFee))
+            return { amountOut: out.add(amountOut), amountUsed, feeUsed, afterPrice: afterSqrtPrice, afterLiquity: liquity }
+        } else {
+            remind = remindWithFee.sub(maxAmountIn)
+            amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee)
+            feeUsed = feeUsed.add(fullStepFee)
             out = out.add(maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity))
             liquity = liquity.sub(ticks[i].liquityNet)
             currentTick = ticks[i].tick
+            upperSqrtPrice = ticks[i].tickPrice
         }
     }
-    return { amountOut: out, amountUsed, afterPrice: tick2Price(currentTick), afterLiquity: liquity }
+    return { amountOut: out, amountUsed, feeUsed, afterPrice: tick2Price(currentTick), afterLiquity: liquity }
 }
 
 /**
- * 
+ *
  * @param ticks The tick array of token swap
  * @param currentSqrtPrice The current sqrt price of token swap
  * @param fee The fee rate of token swap
@@ -199,6 +202,7 @@ export function calculateSwapB2A(
 ): {
     amountOut: Decimal,
     amountUsed: Decimal,
+    feeUsed: Decimal,
     afterPrice: Decimal,
     afterLiquity: Decimal,
 } {
@@ -209,64 +213,73 @@ export function calculateSwapB2A(
     invariant(currentTick < ticks[ticks.length - 1].tick, "out of ticks")
     let liquity = currentLiquity
     let out = new Decimal(0)
-    //let rate = new Decimal(1).add(fee)
-    let rate = fee.div(new Decimal(1).sub(fee)).add(new Decimal(1))
-    let remain = amountIn.div(rate)
+    let remind = amountIn
+    let remindWithFee = new Decimal(0)
     let amountUsed = new Decimal(0)
+    let feeUsed = new Decimal(0)
+    let lowerSqrtPrice = currentSqrtPrice
     for (let i = 0; i < ticks.length; i++) {
         if (liquity.equals(new Decimal(0))) {
             currentTick = ticks[i].tick
             liquity = liquity.add(ticks[i].liquityNet)
+            lowerSqrtPrice = ticks[i].tickPrice
             continue
         }
         if (currentTick >= ticks[i].tick) {
             continue
         }
-        let lowerSqrtPrice = tick2SqrtPrice(currentTick)
-        let upperSqrtPrice = tick2SqrtPrice(ticks[i].tick)
+        let upperSqrtPrice = ticks[i].tickPrice
         let maxAmountIn = maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity)
-
-        if (maxAmountIn.greaterThanOrEqualTo(remain)) {
-            let { amountOut, afterSqrtPrice } = swapB2A(lowerSqrtPrice, upperSqrtPrice, liquity, remain)
-            amountUsed = amountUsed.add(remain.mul(rate))
-            return { amountOut: out.add(amountOut), amountUsed, afterPrice: afterSqrtPrice.pow(2), afterLiquity: liquity }
+        let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN)
+        if (remind.lessThan(fullStepFee)) {
+            remindWithFee = remind
         } else {
-            remain = remain.sub(maxAmountIn)
-            amountUsed = amountUsed.add(maxAmountIn.mul(rate))
+            remindWithFee = remind.sub(fullStepFee)
+        }
+        if (maxAmountIn.greaterThanOrEqualTo(remindWithFee)) {
+            remindWithFee = remind.mul(new Decimal(1).sub(fee)).toDP(0, Decimal.ROUND_UP)
+            let { amountOut, afterSqrtPrice } = swapB2A(lowerSqrtPrice, liquity, remindWithFee)
+            amountUsed = amountUsed.add(remind)
+            feeUsed = feeUsed.add(remind.sub(remindWithFee))
+            return { amountOut: out.add(amountOut), feeUsed, amountUsed, afterPrice: afterSqrtPrice.pow(2), afterLiquity: liquity }
+        } else {
+            remind = remindWithFee.sub(maxAmountIn)
+            amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee)
+            feeUsed = feeUsed.add(fullStepFee)
             out = out.add(maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity))
             liquity = liquity.add(ticks[i].liquityNet)
             currentTick = ticks[i].tick
+            lowerSqrtPrice = ticks[i].tickPrice
         }
     }
-    return { amountOut: out, amountUsed, afterPrice: tick2Price(currentTick), afterLiquity: liquity }
+    return { amountOut: out, amountUsed, feeUsed, afterPrice: tick2Price(currentTick), afterLiquity: liquity }
 }
 
 /** @internal */
 export function maxAmountA(lowerSqrtPrice: Decimal, upperSqrtPrice: Decimal, liquity: Decimal): Decimal {
-    let one = new Decimal(1)
-    return liquity.mul(one.div(lowerSqrtPrice).sub(one.div(upperSqrtPrice)))
+    return liquity.div(lowerSqrtPrice).toDP(0, Decimal.ROUND_DOWN).sub(liquity.div(upperSqrtPrice).toDP(0, Decimal.ROUND_DOWN))
 }
 
 /** @internal */
 export function maxAmountB(lowerSqrtPrice: Decimal, upperSqrtPrice: Decimal, liquity: Decimal): Decimal {
-    return liquity.mul(upperSqrtPrice.sub(lowerSqrtPrice))
+    return liquity.mul(upperSqrtPrice.sub(lowerSqrtPrice)).toDP(0, Decimal.ROUND_DOWN)
 }
 
 /** @internal */
-export function swapA2B(lowerSqrtPrice: Decimal, upperSqrtPrice: Decimal, liquity: Decimal, amountIn: Decimal): { amountOut: Decimal, afterSqrtPrice: Decimal } {
-    invariant(maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity).greaterThanOrEqualTo(amountIn), "out of tick")
-    let before = maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity)
+export function swapA2B(upperSqrtPrice: Decimal, liquity: Decimal, amountIn: Decimal): { amountOut: Decimal, afterSqrtPrice: Decimal } {
     let afterSqrtPrice = liquity.div(amountIn.add(liquity.div(upperSqrtPrice)))
-    let after = maxAmountB(lowerSqrtPrice, afterSqrtPrice, liquity)
-    return { amountOut: before.sub(after), afterSqrtPrice }
+    let delta_increase = amountIn.add(liquity.div(upperSqrtPrice).toDP(0, Decimal.ROUND_DOWN));
+    let out = liquity.mul(upperSqrtPrice).toDP(0, Decimal.ROUND_DOWN).
+        sub(liquity.mul(liquity).div(delta_increase).toDP(0, Decimal.ROUND_DOWN));
+    return { amountOut: out, afterSqrtPrice }
 
 }
 
 /** @internal */
-export function swapB2A(lowerSqrtPrice: Decimal, upperSqrtPrice: Decimal, liquity: Decimal, amountIn: Decimal): { amountOut: Decimal, afterSqrtPrice: Decimal } {
-    invariant(maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity).greaterThanOrEqualTo(amountIn), "out of tick")
-    let before = maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity)
+export function swapB2A(lowerSqrtPrice: Decimal, liquity: Decimal, amountIn: Decimal): { amountOut: Decimal, afterSqrtPrice: Decimal } {
     let afterSqrtPrice = amountIn.div(liquity).add(lowerSqrtPrice)
-    let after = maxAmountA(afterSqrtPrice, upperSqrtPrice, liquity)
-    return { amountOut: before.sub(after), afterSqrtPrice }
+    let delta_increase = amountIn.add(liquity.mul(lowerSqrtPrice).toDP(0, Decimal.ROUND_DOWN))
+    let out = liquity.div(lowerSqrtPrice).toDP(0, Decimal.ROUND_DOWN).
+        sub(liquity.mul(liquity).div(delta_increase).toDP(0, Decimal.ROUND_DOWN))
+    return { amountOut: out, afterSqrtPrice }
 }

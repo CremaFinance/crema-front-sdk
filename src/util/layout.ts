@@ -12,13 +12,13 @@ export type Parser<T> = (
         info: AccountInfo<Buffer>;
         data: T;
     }
-    | undefined;
+        | undefined;
 
-/** @internal */
-export interface EncodeDecode<T> {
-    decode: (buffer: Buffer, offset?: number) => T;
-    encode: (src: T, buffer: Buffer, offset?: number) => number;
-}
+        /** @internal */
+        export interface EncodeDecode<T> {
+            decode: (buffer: Buffer, offset?: number) => T;
+            encode: (src: T, buffer: Buffer, offset?: number) => number;
+        }
 
 /** @internal */
 export const encodeDecode = <T>(layout: Layout<T>): EncodeDecode<T> => {
@@ -135,7 +135,8 @@ export const decimalU128 = (property: string = 'uint64', precision: number = 0):
 
     decimalU128Layout.decode = (buffer: Buffer, offset: number) => {
         const src = _decode(buffer, offset)
-        return DecimalExt.fromU128Buffer(src, precision)
+        let val = DecimalExt.fromU128Buffer(src, precision)
+        return val
     }
 
     decimalU128Layout.encode = (decimal: Decimal, buffer: Buffer, offset: number) => {

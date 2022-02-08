@@ -2,7 +2,7 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { PublicKey, TransactionInstruction } from '@solana/web3.js'
 import { struct, u8, s32 } from 'buffer-layout'
 import Decimal from 'decimal.js'
-import { decimalU64 } from '../util/layout'
+import { decimalU64, decimalU128 } from '../util/layout'
 import { TokenSwapInstruction } from './instruction'
 
 interface Data {
@@ -20,7 +20,7 @@ const DataLayout = struct<Data>(
     [
         u8("instruction"),
         u8('isNewPosition'),
-        decimalU64('liquityAmount'),
+        decimalU128('liquityAmount'),
         s32('tickLower'),
         s32('tickUpper'),
         decimalU64('maximumTokenA'),

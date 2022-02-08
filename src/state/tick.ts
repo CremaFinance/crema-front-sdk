@@ -3,7 +3,11 @@ import { decimal128, decimalU128, Parser, publicKey } from '../util/layout'
 import Decimal from "decimal.js"
 import { AccountInfo, PublicKey } from "@solana/web3.js"
 
-export const TICKS_ACCOUNT_SIZE = 840000
+// mainnet-beta
+export const TICKS_ACCOUNT_SIZE = 504000
+
+// devnet
+//export const TICKS_ACCOUNT_SIZE = 840000
 
 export interface Tick {
     tick: number,

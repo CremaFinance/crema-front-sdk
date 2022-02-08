@@ -3,10 +3,10 @@ import { PublicKey, TransactionInstruction, Connection, AccountInfo as BaseAccou
 import invariant from "tiny-invariant";
 
 /**
- * Get a authority token account address 
+ * Get a authority token account address
  * @param tokenMint The mint of token
  * @param owner The owner associated token address
- * @returns 
+ * @returns
  */
 export async function getAssociatedTokenAddress(
     tokenMint: PublicKey,
@@ -27,7 +27,7 @@ export async function getAssociatedTokenAddress(
  * @param owner The owner associated token address
  * @param authority The authority token account address
  * @param payer The pays for transaction
- * @returns 
+ * @returns
  */
 export function createAssociatedTokenAccountInstruction(
     tokenMint: PublicKey,
@@ -49,7 +49,7 @@ export function createAssociatedTokenAccountInstruction(
  * Get the token account info by address
  * @param conn The connection to use
  * @param address The token account address
- * @returns 
+ * @returns
  */
 export async function getTokenAccount(conn: Connection, address: PublicKey): Promise<AccountInfo> {
     let account = await conn.getAccountInfo(address)
@@ -78,7 +78,41 @@ export async function getTokenAccounts(conn: Connection, owner: PublicKey): Prom
     return accountInfos
 }
 
-function parseTokenAccount(account: BaseAccountInfo<Buffer>): AccountInfo {
+export function parseTokenAccountData(data: Buffer): AccountInfo {
+    let accountInfo = AccountLayout.decode(data)
+    accountInfo.mint = new PublicKey(accountInfo.mint);
+    accountInfo.owner = new PublicKey(accountInfo.owner);
+    accountInfo.amount = u64.fromBuffer(accountInfo.amount);
+
+    if (accountInfo.delegateOption === 0) {
+        accountInfo.delegate = null;
+        accountInfo.delegatedAmount = new u64(0);
+    } else {
+        accountInfo.delegate = new PublicKey(accountInfo.delegate);
+        accountInfo.delegatedAmount = u64.fromBuffer(accountInfo.delegatedAmount);
+    }
+
+    accountInfo.isInitialized = accountInfo.state !== 0;
+    accountInfo.isFrozen = accountInfo.state === 2;
+
+    if (accountInfo.isNativeOption === 1) {
+        accountInfo.rentExemptReserve = u64.fromBuffer(accountInfo.isNative);
+        accountInfo.isNative = true;
+    } else {
+        accountInfo.rentExemptReserve = null;
+        accountInfo.isNative = false;
+    }
+
+    if (accountInfo.closeAuthorityOption === 0) {
+        accountInfo.closeAuthority = null;
+    } else {
+        accountInfo.closeAuthority = new PublicKey(accountInfo.closeAuthority);
+    }
+
+    return accountInfo;
+}
+
+export function parseTokenAccount(account: BaseAccountInfo<Buffer>): AccountInfo {
     invariant(account?.data != null, `The account data is null`)
     let accountInfo = AccountLayout.decode(account?.data)
     accountInfo.mint = new PublicKey(accountInfo.mint);

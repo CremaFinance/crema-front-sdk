@@ -39,7 +39,7 @@ export class DecimalExt {
 
     /**
      * New a Decimal from a uint64 buffer
-     * @param buffer The buffer 
+     * @param buffer The buffer
      * @param precision The precision
      * @returns The Decimal value, the result will be div 10^precision
      */

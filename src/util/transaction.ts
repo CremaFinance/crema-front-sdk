@@ -1,4 +1,4 @@
-import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from '@solana/web3.js';
+import { sendAndConfirmTransaction as realSendAndConfirmTransaction, SimulatedTransactionResponse } from '@solana/web3.js';
 import type { Connection, Transaction, Signer, TransactionSignature } from '@solana/web3.js';
 
 /**
@@ -6,7 +6,7 @@ import type { Connection, Transaction, Signer, TransactionSignature } from '@sol
  * @param conn The connection to use
  * @param transaction The transaction
  * @param signers The signers array
- * @returns 
+ * @returns
  */
 export async function sendAndConfirmTransaction(conn: Connection, transaction: Transaction, ...signers: Signer[]): Promise<TransactionSignature> {
     return realSendAndConfirmTransaction(
