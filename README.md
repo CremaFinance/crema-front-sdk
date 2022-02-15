@@ -1,6 +1,14 @@
 ## Install:
 
+```
 npm i @cremafinance/crema-sdk
+```
+
+## Build:
+
+```
+npm run build
+```
 
 ## Instructions:
 
