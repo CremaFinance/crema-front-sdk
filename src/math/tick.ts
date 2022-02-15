@@ -18,8 +18,6 @@ export const MIN_PRICE = PIECES.pow(MIN_TICK)
 export const MAX_SQRT_PRICE = PIECES.pow(MAX_TICK / 2)
 export const MIN_SQRT_PRICE = PIECES.pow(MIN_TICK / 2)
 
-export const TICK_INFO_SPAN = 84000
-
 /**
  * Get the tick by sqrt price
  *

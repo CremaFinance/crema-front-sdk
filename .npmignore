@@ -1,8 +1,10 @@
 target/
 node_modules/
-dist/
-yarn-error.log
-yarn.lock
+.yarn/
+
+cli/
+src/
+types/
+.gitignore
 .yarn/
 .vscode/
-.vim/

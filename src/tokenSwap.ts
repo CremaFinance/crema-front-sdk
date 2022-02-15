@@ -3,8 +3,7 @@ import invariant from 'tiny-invariant'
 import { sendAndConfirmTransaction, parseTokenAccountData } from './util';
 import { TransactionSignature } from '@solana/web3.js';
 import { MintLayout, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import axios from 'axios';
-import { addUserPositionInstruction, claimInstruction, depositAllTokenTypesInstruction, initializeInstruction, managerClaimInstruction, swapInstruction, withdrawAllTokenTypesInstruction, simulateSwapInstruction} from './instructions';
+import { addUserPositionInstruction, claimInstruction, depositAllTokenTypesInstruction, initializeInstruction, managerClaimInstruction, swapInstruction, withdrawAllTokenTypesInstruction, simulateSwapInstruction } from './instructions';
 import { TICKS_ACCOUNT_SIZE, POSITIONS_ACCOUNT_SIZE, TOKEN_SWAP_ACCOUNT_SIZE, MAX_ACCOUNT_POSITION_LENGTH } from './state';
 import { Connection, PublicKey, Signer, Keypair, GetProgramAccountsConfig, Transaction, SystemProgram } from '@solana/web3.js';
 import { isPositionsAccount, isTicksAccount, isTokenSwapAccount, parsePositionsAccount, parseTicksAccount, parseTokenSwapAccount, Tick, TokenSwapAccount, } from './state';
@@ -188,808 +187,808 @@ export class TokenSwap {
         payer: Signer,
         isDebug: boolean = false,
     ): Promise<TokenSwap> {
-            // generate account create instruction that token swap need
-            const tokenSwapAccount = Keypair.generate()
-            const ticksAccount = Keypair.generate()
-            const positionsAccount = Keypair.generate()
-            const [authority, nonce] = await PublicKey.findProgramAddress(
-                [tokenSwapAccount.publicKey.toBuffer()],
-                programId
-            )
-            const ticksAccountLamports = await conn.getMinimumBalanceForRentExemption(TICKS_ACCOUNT_SIZE)
-            const positionsAccountLarports = await conn.getMinimumBalanceForRentExemption(POSITIONS_ACCOUNT_SIZE)
-            const tokenSwapAccountLamports = await conn.getMinimumBalanceForRentExemption(TOKEN_SWAP_ACCOUNT_SIZE)
-            let transaction = new Transaction().add(
-                SystemProgram.createAccount({
-                    fromPubkey: payer.publicKey,
-                    newAccountPubkey: tokenSwapAccount.publicKey,
-                    lamports: tokenSwapAccountLamports,
-                    space: TOKEN_SWAP_ACCOUNT_SIZE,
-                    programId: programId,
-                }),
-                SystemProgram.createAccount({
-                    fromPubkey: payer.publicKey,
-                    newAccountPubkey: ticksAccount.publicKey,
-                    lamports: ticksAccountLamports,
-                    space: TICKS_ACCOUNT_SIZE,
-                    programId: programId,
-                }),
-                SystemProgram.createAccount({
-                    fromPubkey: payer.publicKey,
-                    newAccountPubkey: positionsAccount.publicKey,
-                    lamports: positionsAccountLarports,
-                    space: POSITIONS_ACCOUNT_SIZE,
-                    programId: programId,
-                }),
-            )
+        // generate account create instruction that token swap need
+        const tokenSwapAccount = Keypair.generate()
+        const ticksAccount = Keypair.generate()
+        const positionsAccount = Keypair.generate()
+        const [authority, nonce] = await PublicKey.findProgramAddress(
+            [tokenSwapAccount.publicKey.toBuffer()],
+            programId
+        )
+        const ticksAccountLamports = await conn.getMinimumBalanceForRentExemption(TICKS_ACCOUNT_SIZE)
+        const positionsAccountLarports = await conn.getMinimumBalanceForRentExemption(POSITIONS_ACCOUNT_SIZE)
+        const tokenSwapAccountLamports = await conn.getMinimumBalanceForRentExemption(TOKEN_SWAP_ACCOUNT_SIZE)
+        let transaction = new Transaction().add(
+            SystemProgram.createAccount({
+                fromPubkey: payer.publicKey,
+                newAccountPubkey: tokenSwapAccount.publicKey,
+                lamports: tokenSwapAccountLamports,
+                space: TOKEN_SWAP_ACCOUNT_SIZE,
+                programId: programId,
+            }),
+            SystemProgram.createAccount({
+                fromPubkey: payer.publicKey,
+                newAccountPubkey: ticksAccount.publicKey,
+                lamports: ticksAccountLamports,
+                space: TICKS_ACCOUNT_SIZE,
+                programId: programId,
+            }),
+            SystemProgram.createAccount({
+                fromPubkey: payer.publicKey,
+                newAccountPubkey: positionsAccount.publicKey,
+                lamports: positionsAccountLarports,
+                space: POSITIONS_ACCOUNT_SIZE,
+                programId: programId,
+            }),
+        )
 
-            // generate create token swap authority token account instruction
-            let swapTokenA = await getAssociatedTokenAddress(tokenAMint, authority)
-            let swapTokenB = await getAssociatedTokenAddress(tokenBMint, authority)
-            transaction.add(
-                createAssociatedTokenAccountInstruction(tokenAMint, swapTokenA, authority, payer.publicKey),
-                createAssociatedTokenAccountInstruction(tokenBMint, swapTokenB, authority, payer.publicKey)
-            )
+        // generate create token swap authority token account instruction
+        let swapTokenA = await getAssociatedTokenAddress(tokenAMint, authority)
+        let swapTokenB = await getAssociatedTokenAddress(tokenBMint, authority)
+        transaction.add(
+            createAssociatedTokenAccountInstruction(tokenAMint, swapTokenA, authority, payer.publicKey),
+            createAssociatedTokenAccountInstruction(tokenBMint, swapTokenB, authority, payer.publicKey)
+        )
 
-            // generate token swap initialize instruction
-            const currentSqrtPrice = initializePrice.sqrt()
-            const tokenA = new Token(conn, tokenAMint, TOKEN_PROGRAM_ID, payer)
-            const tokenB = new Token(conn, tokenBMint, TOKEN_PROGRAM_ID, payer)
-            const managerTokenA = await tokenA.getOrCreateAssociatedAccountInfo(manager)
-            const managerTokenB = await tokenB.getOrCreateAssociatedAccountInfo(manager)
+        // generate token swap initialize instruction
+        const currentSqrtPrice = initializePrice.sqrt()
+        const tokenA = new Token(conn, tokenAMint, TOKEN_PROGRAM_ID, payer)
+        const tokenB = new Token(conn, tokenBMint, TOKEN_PROGRAM_ID, payer)
+        const managerTokenA = await tokenA.getOrCreateAssociatedAccountInfo(manager)
+        const managerTokenB = await tokenB.getOrCreateAssociatedAccountInfo(manager)
 
-            const curveType = 0
-            transaction.add(initializeInstruction(
-                programId,
-                tokenSwapAccount.publicKey,
-                authority,
-                manager,
-                managerTokenA.address,
-                managerTokenB.address,
-                swapTokenA,
-                swapTokenB,
-                ticksAccount.publicKey,
-                positionsAccount.publicKey,
-                nonce,
-                curveType,
-                fee,
-                managerFee,
-                tickSpace,
-                currentSqrtPrice,
-            ))
+        const curveType = 0
+        transaction.add(initializeInstruction(
+            programId,
+            tokenSwapAccount.publicKey,
+            authority,
+            manager,
+            managerTokenA.address,
+            managerTokenB.address,
+            swapTokenA,
+            swapTokenB,
+            ticksAccount.publicKey,
+            positionsAccount.publicKey,
+            nonce,
+            curveType,
+            fee,
+            managerFee,
+            tickSpace,
+            currentSqrtPrice,
+        ))
 
 
-            // send and confirm transaction
-            const tx = await sendAndConfirmTransaction(
-                conn,
-                transaction,
-                payer,
-                tokenSwapAccount,
-                ticksAccount,
-                positionsAccount,
-            )
-            if (isDebug) {
-                console.log(tx)
-            }
-
-            return await new TokenSwap(
-                conn,
-                programId,
-                tokenSwapAccount.publicKey,
-                payer
-            ).load()
+        // send and confirm transaction
+        const tx = await sendAndConfirmTransaction(
+            conn,
+            transaction,
+            payer,
+            tokenSwapAccount,
+            ticksAccount,
+            positionsAccount,
+        )
+        if (isDebug) {
+            console.log(tx)
         }
 
-        /**
-         *
-         * @param userTokenA The user address of token A
-         * @param userTokenB The user address of token B
-         * @param lowerTick The lower tick
-         * @param upperTick The upper tick
-         * @param liquity The liquity amount
-         * @param maximumAmountA The maximum amount of Token A
-         * @param maximumAmountB The maximum amount of Token B
-         * @param userTransferAuthroity The pays for the transaction
-         * @returns
-         */
-        async mintPosition(
-            userTokenA: PublicKey,
-            userTokenB: PublicKey,
-            lowerTick: number,
-            upperTick: number,
-            liquity: Decimal,
-            maximumAmountA: Decimal,
-            maximumAmountB: Decimal,
-            userTransferAuthroity: Signer,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (this.isLoaded) {
-                await this.load()
-            }
-            invariant(lowerTick < upperTick, "The lowerTick must be less than upperTick")
-            payer = payer != null ? payer : this.payer
-            invariant(payer != null, "The payer is null")
+        return await new TokenSwap(
+            conn,
+            programId,
+            tokenSwapAccount.publicKey,
+            payer
+        ).load()
+    }
 
-            // Generate create position nft token instructions
-            const nftMintAccount = Keypair.generate()
-            const nftUser = await getAssociatedTokenAddress(nftMintAccount.publicKey, payer.publicKey)
-            const accountLamports = await Token.getMinBalanceRentForExemptAccount(this.conn)
-            const positionsKey = this.choosePosition()
-            invariant(positionsKey != null, "The position account space is full")
-            let transaction = new Transaction()
-            transaction.add(
-                SystemProgram.createAccount({
-                    fromPubkey: payer.publicKey,
-                    newAccountPubkey: nftMintAccount.publicKey,
-                    lamports: accountLamports,
-                    space: MintLayout.span,
-                    programId: TOKEN_PROGRAM_ID,
-                }),
-                Token.createInitMintInstruction(
-                    TOKEN_PROGRAM_ID,
-                    nftMintAccount.publicKey,
-                    0,
-                    this.authority,
-                    null,
-                ),
-                createAssociatedTokenAccountInstruction(nftMintAccount.publicKey, nftUser, payer.publicKey, payer.publicKey),
-            )
-
-            // Generate mint positon instruction
-            transaction.add(
-                depositAllTokenTypesInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    userTransferAuthroity.publicKey,
-                    userTokenA,
-                    userTokenB,
-                    this.tokenSwapInfo.swapTokenA,
-                    this.tokenSwapInfo.swapTokenB,
-                    nftMintAccount.publicKey,
-                    nftUser,
-                    this.tokenSwapInfo.ticksKey,
-                    positionsKey,
-                    0,
-                    lowerTick,
-                    upperTick,
-                    liquity,
-                    maximumAmountA,
-                    maximumAmountB,
-                    new Decimal(0),
-                )
-            )
-
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-                userTransferAuthroity,
-                nftMintAccount,
-            )
+    /**
+     *
+     * @param userTokenA The user address of token A
+     * @param userTokenB The user address of token B
+     * @param lowerTick The lower tick
+     * @param upperTick The upper tick
+     * @param liquity The liquity amount
+     * @param maximumAmountA The maximum amount of Token A
+     * @param maximumAmountB The maximum amount of Token B
+     * @param userTransferAuthroity The pays for the transaction
+     * @returns
+     */
+    async mintPosition(
+        userTokenA: PublicKey,
+        userTokenB: PublicKey,
+        lowerTick: number,
+        upperTick: number,
+        liquity: Decimal,
+        maximumAmountA: Decimal,
+        maximumAmountB: Decimal,
+        userTransferAuthroity: Signer,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (this.isLoaded) {
+            await this.load()
         }
+        invariant(lowerTick < upperTick, "The lowerTick must be less than upperTick")
+        payer = payer != null ? payer : this.payer
+        invariant(payer != null, "The payer is null")
 
-        /**
-         * Increase liquity on a exist position
-         * @param positionId The position id (nft mint address)
-         * @param userTokenA The user address of token A
-         * @param userTokenB The user address of token B
-         * @param lowerTick The lower tick
-         * @param upperTick The upper tick
-         * @param liquity The liquity amount
-         * @param maximumAmountA The maximum of token A
-         * @param maximumAmountB The maximum of token B
-         * @returns
-         */
-        async increaseLiquity(
-            positionId: PublicKey,
-            userTokenA: PublicKey,
-            userTokenB: PublicKey,
-            liquity: Decimal,
-            maximumAmountA: Decimal,
-            maximumAmountB: Decimal,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            const positionInfo = this.getPositionInfo(positionId)
-            invariant(positionInfo != undefined, `Position:${positionId} not found`)
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
+        // Generate create position nft token instructions
+        const nftMintAccount = Keypair.generate()
+        const nftUser = await getAssociatedTokenAddress(nftMintAccount.publicKey, payer.publicKey)
+        const accountLamports = await Token.getMinBalanceRentForExemptAccount(this.conn)
+        const positionsKey = this.choosePosition()
+        invariant(positionsKey != null, "The position account space is full")
+        let transaction = new Transaction()
+        transaction.add(
+            SystemProgram.createAccount({
+                fromPubkey: payer.publicKey,
+                newAccountPubkey: nftMintAccount.publicKey,
+                lamports: accountLamports,
+                space: MintLayout.span,
+                programId: TOKEN_PROGRAM_ID,
+            }),
+            Token.createInitMintInstruction(
+                TOKEN_PROGRAM_ID,
+                nftMintAccount.publicKey,
+                0,
+                this.authority,
+                null,
+            ),
+            createAssociatedTokenAccountInstruction(nftMintAccount.publicKey, nftUser, payer.publicKey, payer.publicKey),
+        )
 
-            let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
-            let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
-            invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
-
-            // Generate mint positon instruction
-            let transaction = new Transaction()
-            transaction.add(
-                depositAllTokenTypesInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    payer.publicKey,
-                    userTokenA,
-                    userTokenB,
-                    this.tokenSwapInfo.swapTokenA,
-                    this.tokenSwapInfo.swapTokenB,
-                    positionId,
-                    nftUser.address,
-                    this.tokenSwapInfo.ticksKey,
-                    positionInfo.positionsKey,
-                    1,
-                    positionInfo.lowerTick,
-                    positionInfo.upperTick,
-                    liquity,
-                    maximumAmountA,
-                    maximumAmountB,
-                    positionInfo.index,
-                )
+        // Generate mint positon instruction
+        transaction.add(
+            depositAllTokenTypesInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                userTransferAuthroity.publicKey,
+                userTokenA,
+                userTokenB,
+                this.tokenSwapInfo.swapTokenA,
+                this.tokenSwapInfo.swapTokenB,
+                nftMintAccount.publicKey,
+                nftUser,
+                this.tokenSwapInfo.ticksKey,
+                positionsKey,
+                0,
+                lowerTick,
+                upperTick,
+                liquity,
+                maximumAmountA,
+                maximumAmountB,
+                new Decimal(0),
             )
+        )
 
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-            )
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+            userTransferAuthroity,
+            nftMintAccount,
+        )
+    }
+
+    /**
+     * Increase liquity on a exist position
+     * @param positionId The position id (nft mint address)
+     * @param userTokenA The user address of token A
+     * @param userTokenB The user address of token B
+     * @param lowerTick The lower tick
+     * @param upperTick The upper tick
+     * @param liquity The liquity amount
+     * @param maximumAmountA The maximum of token A
+     * @param maximumAmountB The maximum of token B
+     * @returns
+     */
+    async increaseLiquity(
+        positionId: PublicKey,
+        userTokenA: PublicKey,
+        userTokenB: PublicKey,
+        liquity: Decimal,
+        maximumAmountA: Decimal,
+        maximumAmountB: Decimal,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
         }
+        const positionInfo = this.getPositionInfo(positionId)
+        invariant(positionInfo != undefined, `Position:${positionId} not found`)
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
 
-        /**
-         * Decrease liquity, after decrease if liquity amount is zero the position will be remove
-         * @param positionId The position id (nft mint address)
-         * @param userTokenA The user address of token A
-         * @param userTokenB The user address of token B
-         * @param liquity The liquity amount
-         * @param minimumAmountA The minimum amount of token A want recv
-         * @param minimumAmountB The minimum amount of token b want recv
-         * @param userAuthroity The pays for the transaction
-         * @returns
-         */
-        async decreaseLiquity(
-            positionId: PublicKey,
-            userTokenA: PublicKey,
-            userTokenB: PublicKey,
-            liquity: Decimal,
-            minimumAmountA: Decimal,
-            minimumAmountB: Decimal,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            const positionInfo = this.getPositionInfo(positionId)
-            invariant(positionInfo != undefined, `Position:${positionId} not found`)
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
-            let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
-            invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
+        let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
+        let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
+        invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
 
-            // Create withdrawAllTokenTypes instruction
-            let transaction = new Transaction().add(
-                withdrawAllTokenTypesInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    payer.publicKey,
-                    this.tokenSwapInfo.swapTokenA,
-                    this.tokenSwapInfo.swapTokenB,
-                    userTokenA,
-                    userTokenB,
-                    positionId,
-                    nftUser.address,
-                    this.tokenSwapInfo.ticksKey,
-                    positionInfo.positionsKey,
-                    liquity,
-                    minimumAmountA,
-                    minimumAmountB,
-                    positionInfo.index,
-                )
+        // Generate mint positon instruction
+        let transaction = new Transaction()
+        transaction.add(
+            depositAllTokenTypesInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                payer.publicKey,
+                userTokenA,
+                userTokenB,
+                this.tokenSwapInfo.swapTokenA,
+                this.tokenSwapInfo.swapTokenB,
+                positionId,
+                nftUser.address,
+                this.tokenSwapInfo.ticksKey,
+                positionInfo.positionsKey,
+                1,
+                positionInfo.lowerTick,
+                positionInfo.upperTick,
+                liquity,
+                maximumAmountA,
+                maximumAmountB,
+                positionInfo.index,
             )
+        )
 
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-            )
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+        )
+    }
+
+    /**
+     * Decrease liquity, after decrease if liquity amount is zero the position will be remove
+     * @param positionId The position id (nft mint address)
+     * @param userTokenA The user address of token A
+     * @param userTokenB The user address of token B
+     * @param liquity The liquity amount
+     * @param minimumAmountA The minimum amount of token A want recv
+     * @param minimumAmountB The minimum amount of token b want recv
+     * @param userAuthroity The pays for the transaction
+     * @returns
+     */
+    async decreaseLiquity(
+        positionId: PublicKey,
+        userTokenA: PublicKey,
+        userTokenB: PublicKey,
+        liquity: Decimal,
+        minimumAmountA: Decimal,
+        minimumAmountB: Decimal,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
         }
+        const positionInfo = this.getPositionInfo(positionId)
+        invariant(positionInfo != undefined, `Position:${positionId} not found`)
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
+        let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
+        invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
 
-        /**
-         *
-         * @param userSource The token that user want swap out
-         * @param userDestination The token that user want swap in
-         * @param direct 0-A swap B, 1-B swap A
-         * @param amountIn The amount in
-         * @param minimumAmountOut The minimum amount out
-         * @param userTransactionAuthority Account delegated to transfer user's tokens
-         * @returns
-         */
-        async swap(
-            userSource: PublicKey,
-            userDestination: PublicKey,
-            direct: number,
-            amountIn: Decimal,
-            minimumAmountOut: Decimal,
-            userTransferAuthority: Signer,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let { swapSrc, swapDst } = direct === 1 ?
-                { swapSrc: this.tokenSwapInfo.swapTokenA, swapDst: this.tokenSwapInfo.swapTokenB } :
-                { swapSrc: this.tokenSwapInfo.swapTokenB, swapDst: this.tokenSwapInfo.swapTokenA }
-
-            let transaction = new Transaction().add(
-                swapInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    userTransferAuthority.publicKey,
-                    userSource,
-                    userDestination,
-                    swapSrc,
-                    swapDst,
-                    this.tokenSwapInfo.ticksKey,
-                    amountIn,
-                    minimumAmountOut,
-                )
+        // Create withdrawAllTokenTypes instruction
+        let transaction = new Transaction().add(
+            withdrawAllTokenTypesInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                payer.publicKey,
+                this.tokenSwapInfo.swapTokenA,
+                this.tokenSwapInfo.swapTokenB,
+                userTokenA,
+                userTokenB,
+                positionId,
+                nftUser.address,
+                this.tokenSwapInfo.ticksKey,
+                positionInfo.positionsKey,
+                liquity,
+                minimumAmountA,
+                minimumAmountB,
+                positionInfo.index,
             )
+        )
 
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-                userTransferAuthority,
-            )
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+        )
+    }
+
+    /**
+     *
+     * @param userSource The token that user want swap out
+     * @param userDestination The token that user want swap in
+     * @param direct 0-A swap B, 1-B swap A
+     * @param amountIn The amount in
+     * @param minimumAmountOut The minimum amount out
+     * @param userTransactionAuthority Account delegated to transfer user's tokens
+     * @returns
+     */
+    async swap(
+        userSource: PublicKey,
+        userDestination: PublicKey,
+        direct: number,
+        amountIn: Decimal,
+        minimumAmountOut: Decimal,
+        userTransferAuthority: Signer,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
         }
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let { swapSrc, swapDst } = direct === 1 ?
+            { swapSrc: this.tokenSwapInfo.swapTokenA, swapDst: this.tokenSwapInfo.swapTokenB } :
+            { swapSrc: this.tokenSwapInfo.swapTokenB, swapDst: this.tokenSwapInfo.swapTokenA }
 
-        async simulateSwap(
-            amountIn: Decimal,
-            direction: number,
-            payer: Signer,
-        ) {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            let transaction = new Transaction().add(
-                simulateSwapInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.tokenSwapInfo.ticksKey,
-                    amountIn,
-                    direction,
-                )
+        let transaction = new Transaction().add(
+            swapInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                userTransferAuthority.publicKey,
+                userSource,
+                userDestination,
+                swapSrc,
+                swapDst,
+                this.tokenSwapInfo.ticksKey,
+                amountIn,
+                minimumAmountOut,
             )
+        )
 
-            let res = await this.conn.simulateTransaction(
-                transaction,
-                [payer],
-            )
-            console.log(res)
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+            userTransferAuthority,
+        )
+    }
+
+    async simulateSwap(
+        amountIn: Decimal,
+        direction: number,
+        payer: Signer,
+    ) {
+        if (!this.isLoaded) {
+            await this.load()
         }
-
-        async preSwapAV2(
-            amountIn: Decimal,
-            minimumAmountOut: Decimal,
-            userTransferAuthority: Signer,
-            userSource: PublicKey,
-            userDestination: PublicKey,
-        ) {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            let transaction = new Transaction().add(
-                swapInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    userTransferAuthority.publicKey,
-                    userSource,
-                    userDestination,
-                    this.tokenSwapInfo.swapTokenA,
-                    this.tokenSwapInfo.swapTokenB,
-                    this.tokenSwapInfo.ticksKey,
-                    amountIn,
-                    minimumAmountOut,
-                )
+        let transaction = new Transaction().add(
+            simulateSwapInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.tokenSwapInfo.ticksKey,
+                amountIn,
+                direction,
             )
-            let res = await this.conn.simulateTransaction(
-                transaction,
-                [
-                ],
-                [
-                    userSource,
-                    userDestination
-                ]
-            )
-            console.log(res)
-            invariant(res.value.accounts != null)
+        )
 
-            console.log(res.value.accounts[0])
-            console.log(res.value.accounts[1])
-            let a = parseTokenAccountData(Buffer.from(res.value.accounts[0].data[0], 'base64'))
-            console.log(a.amount.toString())
+        let res = await this.conn.simulateTransaction(
+            transaction,
+            [payer],
+        )
+        console.log(res)
+    }
+
+    async preSwapAV2(
+        amountIn: Decimal,
+        minimumAmountOut: Decimal,
+        userTransferAuthority: Signer,
+        userSource: PublicKey,
+        userDestination: PublicKey,
+    ) {
+        if (!this.isLoaded) {
+            await this.load()
         }
-
-        /**
-         *
-         * Collect fee from specified position
-         * @param positionID The NFT token public key of position
-         * @param userTokenA The user address of token A
-         * @param userTokenB The user address of token B
-         * @param userAuthroity The pays for the transaction
-         * @returns
-         */
-        async collect(
-            positionId: PublicKey,
-            userTokenA: PublicKey,
-            userTokenB: PublicKey,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            const positionInfo = this.getPositionInfo(positionId)
-            invariant(positionInfo != undefined, `Position:${positionId} not found`)
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
-            let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
-            invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
-
-            let transaction = new Transaction().add(
-                claimInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    payer.publicKey,
-                    this.tokenSwapInfo.swapTokenB,
-                    this.tokenSwapInfo.swapTokenB,
-                    userTokenA,
-                    userTokenB,
-                    positionId,
-                    nftUser.address,
-                    this.tokenSwapInfo.ticksKey,
-                    positionInfo.positionsKey,
-                    positionInfo.index,
-                ),
+        let transaction = new Transaction().add(
+            swapInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                userTransferAuthority.publicKey,
+                userSource,
+                userDestination,
+                this.tokenSwapInfo.swapTokenA,
+                this.tokenSwapInfo.swapTokenB,
+                this.tokenSwapInfo.ticksKey,
+                amountIn,
+                minimumAmountOut,
             )
+        )
+        let res = await this.conn.simulateTransaction(
+            transaction,
+            [
+            ],
+            [
+                userSource,
+                userDestination
+            ]
+        )
+        console.log(res)
+        invariant(res.value.accounts != null)
 
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-            )
+        console.log(res.value.accounts[0])
+        console.log(res.value.accounts[1])
+        let a = parseTokenAccountData(Buffer.from(res.value.accounts[0].data[0], 'base64'))
+        console.log(a.amount.toString())
+    }
+
+    /**
+     *
+     * Collect fee from specified position
+     * @param positionID The NFT token public key of position
+     * @param userTokenA The user address of token A
+     * @param userTokenB The user address of token B
+     * @param userAuthroity The pays for the transaction
+     * @returns
+     */
+    async collect(
+        positionId: PublicKey,
+        userTokenA: PublicKey,
+        userTokenB: PublicKey,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
         }
+        const positionInfo = this.getPositionInfo(positionId)
+        invariant(positionInfo != undefined, `Position:${positionId} not found`)
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let nftToken = new Token(this.conn, positionId, TOKEN_PROGRAM_ID, payer)
+        let nftUser = await nftToken.getAccountInfo(await getAssociatedTokenAddress(nftToken.publicKey, payer.publicKey))
+        invariant(nftUser.amount.toNumber() === 1, `You not hold this position:${nftToken.publicKey.toBase58()}`)
 
-        /**
-         * Collect the manager fee
-         * @param userTokenA The manager address of token A
-         * @param userTokenB The manager address of token B
-         * @param userAuthroity The pays for the transaction
-         * @returns
-         */
-        async managerCollect(
-            userTokenA: PublicKey,
-            userTokenB: PublicKey,
-            payer: Signer | null = null
-        ): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let transaction = new Transaction().add(
-                managerClaimInstruction(
-                    this.programId,
-                    this.tokenSwapKey,
-                    this.authority,
-                    payer.publicKey,
-                    this.tokenSwapInfo.swapTokenA,
-                    this.tokenSwapInfo.swapTokenB,
-                    userTokenA,
-                    userTokenB,
-                )
-            )
+        let transaction = new Transaction().add(
+            claimInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                payer.publicKey,
+                this.tokenSwapInfo.swapTokenB,
+                this.tokenSwapInfo.swapTokenB,
+                userTokenA,
+                userTokenB,
+                positionId,
+                nftUser.address,
+                this.tokenSwapInfo.ticksKey,
+                positionInfo.positionsKey,
+                positionInfo.index,
+            ),
+        )
 
-            // send and confirm transaction
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-            )
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+        )
+    }
+
+    /**
+     * Collect the manager fee
+     * @param userTokenA The manager address of token A
+     * @param userTokenB The manager address of token B
+     * @param userAuthroity The pays for the transaction
+     * @returns
+     */
+    async managerCollect(
+        userTokenA: PublicKey,
+        userTokenB: PublicKey,
+        payer: Signer | null = null
+    ): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
         }
-
-        /**
-         * Add a positions account for token swap
-         * @param payer The pays for transaction
-         * @returns
-         */
-        async addPositionsAccount(payer: Signer | null = null): Promise<TransactionSignature | null> {
-            if (!this.isLoaded) {
-                await this.load()
-            }
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let positionsAccount = Keypair.generate()
-            let lamports = await this.conn.getMinimumBalanceForRentExemption(POSITIONS_ACCOUNT_SIZE)
-            let transaction = new Transaction().add(
-                SystemProgram.createAccount({
-                    fromPubkey: payer.publicKey,
-                    newAccountPubkey: positionsAccount.publicKey,
-                    lamports,
-                    space: POSITIONS_ACCOUNT_SIZE,
-                    programId: this.programId
-                }),
-                addUserPositionInstruction(
-                    this.programId,
-                    this.authority,
-                    positionsAccount.publicKey
-                )
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let transaction = new Transaction().add(
+            managerClaimInstruction(
+                this.programId,
+                this.tokenSwapKey,
+                this.authority,
+                payer.publicKey,
+                this.tokenSwapInfo.swapTokenA,
+                this.tokenSwapInfo.swapTokenB,
+                userTokenA,
+                userTokenB,
             )
+        )
 
-            return await sendAndConfirmTransaction(
-                this.conn,
-                transaction,
-                payer,
-                positionsAccount
+        // send and confirm transaction
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+        )
+    }
+
+    /**
+     * Add a positions account for token swap
+     * @param payer The pays for transaction
+     * @returns
+     */
+    async addPositionsAccount(payer: Signer | null = null): Promise<TransactionSignature | null> {
+        if (!this.isLoaded) {
+            await this.load()
+        }
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let positionsAccount = Keypair.generate()
+        let lamports = await this.conn.getMinimumBalanceForRentExemption(POSITIONS_ACCOUNT_SIZE)
+        let transaction = new Transaction().add(
+            SystemProgram.createAccount({
+                fromPubkey: payer.publicKey,
+                newAccountPubkey: positionsAccount.publicKey,
+                lamports,
+                space: POSITIONS_ACCOUNT_SIZE,
+                programId: this.programId
+            }),
+            addUserPositionInstruction(
+                this.programId,
+                this.authority,
+                positionsAccount.publicKey
             )
-        }
+        )
 
-        async approve(userToken: PublicKey, tokenMint: PublicKey, amount: Decimal, authority: Signer, payer: Signer | null = null): Promise<void> {
-            payer = payer != null ? payer : this.payer
-            invariant(payer !== null, "The payer is null")
-            let token = new Token(this.conn, tokenMint, TOKEN_PROGRAM_ID, payer)
-            await token.approve(
-                userToken,
-                authority.publicKey,
-                payer,
-                [],
-                amount.toNumber(),
-            )
-        }
+        return await sendAndConfirmTransaction(
+            this.conn,
+            transaction,
+            payer,
+            positionsAccount
+        )
+    }
+
+    async approve(userToken: PublicKey, tokenMint: PublicKey, amount: Decimal, authority: Signer, payer: Signer | null = null): Promise<void> {
+        payer = payer != null ? payer : this.payer
+        invariant(payer !== null, "The payer is null")
+        let token = new Token(this.conn, tokenMint, TOKEN_PROGRAM_ID, payer)
+        await token.approve(
+            userToken,
+            authority.publicKey,
+            payer,
+            [],
+            amount.toNumber(),
+        )
+    }
 
 
-        /**
-         * Get user's positions
-         * @param owner The owner of position
-         * @returns The positions list
-         */
-        async getUserPositions(owner: PublicKey | undefined = undefined): Promise<PositionInfo[] | null> {
-            invariant(this.isLoaded, "The token swap not load")
-            owner = owner != undefined ? owner : this.payer?.publicKey
-            invariant(owner !== undefined, "The owner is undefined")
-            let tokenAccounts = await getTokenAccounts(this.conn, owner)
-            let positions: PositionInfo[] = []
-            for (let i = 0; i < tokenAccounts.length; i++) {
-                let position = this.positions.get(tokenAccounts[i].mint.toBase58())
-                if (position !== undefined) {
-                    positions.push(position)
-                }
-            }
-            return positions
-        }
-
-        /**
-         * Calculate the liquity and token A amount, when the token swap currentTick < upperTick
-         * @param tickLower The lower tick
-         * @param tickUpper the upper tick
-         * @param desiredAmountA The desired token A amount
-         * @returns
-         */
-        calculateLiquityByTokenA(
-            tickLower: number,
-            tickUpper: number,
-            desiredAmountA: Decimal,
-        ): { desiredAmountB: Decimal, liquity: Decimal } {
-            invariant(this.isLoaded, "The token swap not load")
-            invariant(this.currentTick <= tickUpper, "The current price must less than lower price")
-            if (this.currentTick < tickLower) {
-                return {
-                    desiredAmountB: new Decimal(0),
-                    liquity: calculateLiquityOnlyA(tickLower, tickUpper, desiredAmountA)
-                }
-            } else {
-                let res = calculateLiquity(tickLower, tickUpper, desiredAmountA, this.tokenSwapInfo.currentSqrtPrice, 0)
-                return {
-                    desiredAmountB: res.desiredAmountDst,
-                    liquity: res.deltaLiquity,
-                }
+    /**
+     * Get user's positions
+     * @param owner The owner of position
+     * @returns The positions list
+     */
+    async getUserPositions(owner: PublicKey | undefined = undefined): Promise<PositionInfo[] | null> {
+        invariant(this.isLoaded, "The token swap not load")
+        owner = owner != undefined ? owner : this.payer?.publicKey
+        invariant(owner !== undefined, "The owner is undefined")
+        let tokenAccounts = await getTokenAccounts(this.conn, owner)
+        let positions: PositionInfo[] = []
+        for (let i = 0; i < tokenAccounts.length; i++) {
+            let position = this.positions.get(tokenAccounts[i].mint.toBase58())
+            if (position !== undefined) {
+                positions.push(position)
             }
         }
+        return positions
+    }
 
-        /**
-         * Calculate the liquity and token B amount, when the token swap currentTick < upperTick
-         * @param tickLower The lower tick
-         * @param tickUpper the upper tick
-         * @param desiredAmountA The desired token B amount
-         * @returns
-         */
-        calculateLiquityByTokenB(
-            tickLower: number,
-            tickUpper: number,
-            desiredAmountB: Decimal,
-        ): { desiredAmountA: Decimal, liquity: Decimal } {
-            invariant(this.isLoaded, "The token swap not load")
-            invariant(this.currentTick >= tickLower, "The current price must less than lower price")
-            if (this.currentTick < tickUpper) {
-                return {
-                    desiredAmountA: new Decimal(0),
-                    liquity: calculateLiquityOnlyB(tickLower, tickUpper, desiredAmountB)
-                }
-            } else {
-                let res = calculateLiquity(tickLower, tickUpper, desiredAmountB, this.tokenSwapInfo.currentSqrtPrice, 1)
-                return {
-                    desiredAmountA: res.desiredAmountDst,
-                    liquity: res.deltaLiquity,
-                }
-            }
-        }
-
-        /**
-         * Calculate the position current value
-         * @param positionId The position id
-         * @returns The amount of token A and token B
-         */
-        calculatePositionValue(positionId: PublicKey): { liquity: Decimal, amountA: Decimal, amountB: Decimal } {
-            invariant(this.isLoaded, "The token swap not load")
-            const positionInfo = this.getPositionInfo(positionId)
-            invariant(positionInfo !== undefined, `The position:${positionId.toBase58()} not found`)
-            let { amountA, amountB } = calculateTokenAmount(positionInfo.lowerTick, positionInfo.upperTick, positionInfo.liquity, this.tokenSwapInfo.currentSqrtPrice)
+    /**
+     * Calculate the liquity and token A amount, when the token swap currentTick < upperTick
+     * @param tickLower The lower tick
+     * @param tickUpper the upper tick
+     * @param desiredAmountA The desired token A amount
+     * @returns
+     */
+    calculateLiquityByTokenA(
+        tickLower: number,
+        tickUpper: number,
+        desiredAmountA: Decimal,
+    ): { desiredAmountB: Decimal, liquity: Decimal } {
+        invariant(this.isLoaded, "The token swap not load")
+        invariant(this.currentTick <= tickUpper, "The current price must less than lower price")
+        if (this.currentTick < tickLower) {
             return {
-                liquity: positionInfo.liquity,
-                amountA,
-                amountB,
+                desiredAmountB: new Decimal(0),
+                liquity: calculateLiquityOnlyA(tickLower, tickUpper, desiredAmountA)
+            }
+        } else {
+            let res = calculateLiquity(tickLower, tickUpper, desiredAmountA, this.tokenSwapInfo.currentSqrtPrice, 0)
+            return {
+                desiredAmountB: res.desiredAmountDst,
+                liquity: res.deltaLiquity,
             }
         }
+    }
 
-        /**
-         * prepare calculate collect amount of token A and B
-         * @param positionId The position id
-         * @returns the amount of token A and B
-         */
-        preCollect(positionId: PublicKey): { amountA: Decimal, amountB: Decimal } {
-            invariant(this.isLoaded, "The token swap not load")
-            const positionInfo = this.getPositionInfo(positionId)
-            invariant(positionInfo !== undefined, `The position:${positionId.toBase58()} not found`)
-            let lowerTick: Tick | null = null
-            let upperTick: Tick | null = null
-            for (let i = 0; i <= this.ticks.length; i++) {
-                if (this.ticks[i].tick == positionInfo.lowerTick) {
-                    lowerTick = this.ticks[i]
-                }
-                if (this.ticks[i].tick == positionInfo.upperTick) {
-                    upperTick = this.ticks[i]
-                }
+    /**
+     * Calculate the liquity and token B amount, when the token swap currentTick < upperTick
+     * @param tickLower The lower tick
+     * @param tickUpper the upper tick
+     * @param desiredAmountA The desired token B amount
+     * @returns
+     */
+    calculateLiquityByTokenB(
+        tickLower: number,
+        tickUpper: number,
+        desiredAmountB: Decimal,
+    ): { desiredAmountA: Decimal, liquity: Decimal } {
+        invariant(this.isLoaded, "The token swap not load")
+        invariant(this.currentTick >= tickLower, "The current price must less than lower price")
+        if (this.currentTick < tickUpper) {
+            return {
+                desiredAmountA: new Decimal(0),
+                liquity: calculateLiquityOnlyB(tickLower, tickUpper, desiredAmountB)
             }
-            invariant(lowerTick !== null, `The position lower tick:${positionInfo.lowerTick} not found`)
-            invariant(upperTick !== null, `The position upper tick:${positionInfo.upperTick} not found`)
-
-            if (this.currentTick < lowerTick.tick) {
-                return {
-                    amountA: lowerTick.feeGrowthOutside0.sub(upperTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideALast),
-                    amountB: lowerTick.feeGrowthOutside1.sub(upperTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
-                }
-            } else if (this.currentTick > upperTick.tick) {
-                return {
-                    amountA: upperTick.feeGrowthOutside0.sub(lowerTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
-                    amountB: upperTick.feeGrowthOutside1.sub(lowerTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
-                }
-            } else {
-                return {
-                    amountA: this.tokenSwapInfo.feeGrowthGlobal0.sub(upperTick.feeGrowthOutside0).sub(lowerTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideALast),
-                    amountB: this.tokenSwapInfo.feeGrowthGlobal1.sub(upperTick.feeGrowthOutside1).sub(lowerTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
-                }
+        } else {
+            let res = calculateLiquity(tickLower, tickUpper, desiredAmountB, this.tokenSwapInfo.currentSqrtPrice, 1)
+            return {
+                desiredAmountA: res.desiredAmountDst,
+                liquity: res.deltaLiquity,
             }
         }
+    }
 
-        /**
-         * Prepare calculate A swap B
-         * @param amountIn The amount input of token A
-         * @returns amountOut:The amount out of token B, amountUsed:The used of amountIn, afterPrice:The price after calculate, afterLiquity: The liquity after calculate
-         */
-        preSwapA(amountIn: Decimal): {
-            amountOut: Decimal,
-            amountUsed: Decimal,
-            feeUsed: Decimal,
-            afterPrice: Decimal,
-            afterLiquity: Decimal,
-        } {
-            invariant(this.isLoaded, "The token swap not load")
-            return calculateSwapA2B(this.ticks, this.tokenSwapInfo.currentSqrtPrice, this.tokenSwapInfo.fee, this.tokenSwapInfo.currentLiquity, amountIn)
+    /**
+     * Calculate the position current value
+     * @param positionId The position id
+     * @returns The amount of token A and token B
+     */
+    calculatePositionValue(positionId: PublicKey): { liquity: Decimal, amountA: Decimal, amountB: Decimal } {
+        invariant(this.isLoaded, "The token swap not load")
+        const positionInfo = this.getPositionInfo(positionId)
+        invariant(positionInfo !== undefined, `The position:${positionId.toBase58()} not found`)
+        let { amountA, amountB } = calculateTokenAmount(positionInfo.lowerTick, positionInfo.upperTick, positionInfo.liquity, this.tokenSwapInfo.currentSqrtPrice)
+        return {
+            liquity: positionInfo.liquity,
+            amountA,
+            amountB,
         }
+    }
 
-        /**
-         * Prepare calculate B swap A
-         * @param amountIn The amount input of token B
-         * @returns amountOut:The amount out of token A, amountUsed:The used of amountIn, afterPrice:The price after calculate, afterLiquity: The liquity after calculate
-         */
-        preSwapB(amountIn: Decimal): {
-            amountOut: Decimal,
-            amountUsed: Decimal,
-            feeUsed: Decimal,
-            afterPrice: Decimal,
-            afterLiquity: Decimal,
-        } {
-            invariant(this.isLoaded, "The token swap not load")
-            return calculateSwapB2A(this.ticks, this.tokenSwapInfo.currentSqrtPrice, this.tokenSwapInfo.fee, this.tokenSwapInfo.currentLiquity, amountIn)
-        }
-
-        /**
-         * Get nearest tick by price
-         * @param price The price
-         * @returns The tick
-         */
-        getNearestTickByPrice(price: Decimal): number {
-            invariant(this.isLoaded, "The token swap not load")
-            return getNearestTickByPrice(price, this.tokenSwapInfo.tickSpace)
-        }
-
-        /* @internal */
-        getPositionInfo(positionId: PublicKey): PositionInfo | undefined {
-            invariant(this.isLoaded, "The token swap not load")
-            return this.positions.get(positionId.toBase58())
-        }
-
-        /* @internal */
-        choosePosition(): PublicKey | null {
-            invariant(this.isLoaded, "The token swap not load")
-            for (let [key, val] of this.positionsKeys) {
-                if (val < MAX_ACCOUNT_POSITION_LENGTH) {
-                    return key
-                }
+    /**
+     * prepare calculate collect amount of token A and B
+     * @param positionId The position id
+     * @returns the amount of token A and B
+     */
+    preCollect(positionId: PublicKey): { amountA: Decimal, amountB: Decimal } {
+        invariant(this.isLoaded, "The token swap not load")
+        const positionInfo = this.getPositionInfo(positionId)
+        invariant(positionInfo !== undefined, `The position:${positionId.toBase58()} not found`)
+        let lowerTick: Tick | null = null
+        let upperTick: Tick | null = null
+        for (let i = 0; i <= this.ticks.length; i++) {
+            if (this.ticks[i].tick == positionInfo.lowerTick) {
+                lowerTick = this.ticks[i]
             }
-            return null
+            if (this.ticks[i].tick == positionInfo.upperTick) {
+                upperTick = this.ticks[i]
+            }
         }
+        invariant(lowerTick !== null, `The position lower tick:${positionInfo.lowerTick} not found`)
+        invariant(upperTick !== null, `The position upper tick:${positionInfo.upperTick} not found`)
 
-        /* for debug */
-        log() {
-            let payer = this.payer !== null ? this.payer.publicKey.toBase58() : "null"
-            console.log(JSON.stringify({
-                "programId": this.programId.toString(),
-                "tokenSwapKey": this.tokenSwapKey.toString(),
-                "payer": payer,
-                "authority": this.authority.toString(),
-                "currentTick": this.currentTick,
-                "currentPrice": this.tokenSwapInfo.currentSqrtPrice.pow(2).toString(),
-                "tokenSwapInfo": {
-                    "accountType": this.tokenSwapInfo.accountType,
-                    "version": this.tokenSwapInfo.version,
-                    "isInitialized": this.tokenSwapInfo.isInitialized,
-                    "nonce": this.tokenSwapInfo.nonce,
-                    "manager": this.tokenSwapInfo.manager.toString(),
-                    "managerTokenA": this.tokenSwapInfo.managerTokenA.toString(),
-                    "managerTokenB": this.tokenSwapInfo.managerTokenB.toString(),
-                    "swapTokenA": this.tokenSwapInfo.swapTokenA.toString(),
-                    "swapTokenB": this.tokenSwapInfo.swapTokenB.toString(),
-                    "tokenAMint": this.tokenSwapInfo.tokenAMint.toString(),
-                    "tokenBMint": this.tokenSwapInfo.tokenBMint.toString(),
-                    "ticksKey": this.tokenSwapInfo.ticksKey.toString(),
-                    "positionsKey": this.tokenSwapInfo.positionsKey.toString(),
-                    "curveType": this.tokenSwapInfo.curveType,
-                    "fee": this.tokenSwapInfo.fee,
-                    "managerFee": this.tokenSwapInfo.managerFee,
-                    "tickSpace": this.tokenSwapInfo.tickSpace,
-                    "currentSqrtPrice": this.tokenSwapInfo.currentSqrtPrice,
-                    "currentLiquity": this.tokenSwapInfo.currentLiquity,
-                    "feeGrowthGlobal0": this.tokenSwapInfo.feeGrowthGlobal0,
-                    "feeGrowthGlobal1": this.tokenSwapInfo.feeGrowthGlobal1,
-                    "managerFeeA": this.tokenSwapInfo.managerFeeA,
-                    "managerFeeB": this.tokenSwapInfo.managerFeeB
-
-                },
-                "positions": Object.fromEntries(this.positions),
-                "positionsKeys": Object.fromEntries(this.positionsKeys),
-                "ticks": this.ticks,
-            }, null, 4))
+        if (this.currentTick < lowerTick.tick) {
+            return {
+                amountA: lowerTick.feeGrowthOutside0.sub(upperTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideALast),
+                amountB: lowerTick.feeGrowthOutside1.sub(upperTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
+            }
+        } else if (this.currentTick > upperTick.tick) {
+            return {
+                amountA: upperTick.feeGrowthOutside0.sub(lowerTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
+                amountB: upperTick.feeGrowthOutside1.sub(lowerTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
+            }
+        } else {
+            return {
+                amountA: this.tokenSwapInfo.feeGrowthGlobal0.sub(upperTick.feeGrowthOutside0).sub(lowerTick.feeGrowthOutside0).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideALast),
+                amountB: this.tokenSwapInfo.feeGrowthGlobal1.sub(upperTick.feeGrowthOutside1).sub(lowerTick.feeGrowthOutside1).mul(positionInfo.liquity).sub(positionInfo.feeGrowthInsideBLast),
+            }
         }
+    }
+
+    /**
+     * Prepare calculate A swap B
+     * @param amountIn The amount input of token A
+     * @returns amountOut:The amount out of token B, amountUsed:The used of amountIn, afterPrice:The price after calculate, afterLiquity: The liquity after calculate
+     */
+    preSwapA(amountIn: Decimal): {
+        amountOut: Decimal,
+        amountUsed: Decimal,
+        feeUsed: Decimal,
+        afterPrice: Decimal,
+        afterLiquity: Decimal,
+    } {
+        invariant(this.isLoaded, "The token swap not load")
+        return calculateSwapA2B(this.ticks, this.tokenSwapInfo.currentSqrtPrice, this.tokenSwapInfo.fee, this.tokenSwapInfo.currentLiquity, amountIn)
+    }
+
+    /**
+     * Prepare calculate B swap A
+     * @param amountIn The amount input of token B
+     * @returns amountOut:The amount out of token A, amountUsed:The used of amountIn, afterPrice:The price after calculate, afterLiquity: The liquity after calculate
+     */
+    preSwapB(amountIn: Decimal): {
+        amountOut: Decimal,
+        amountUsed: Decimal,
+        feeUsed: Decimal,
+        afterPrice: Decimal,
+        afterLiquity: Decimal,
+    } {
+        invariant(this.isLoaded, "The token swap not load")
+        return calculateSwapB2A(this.ticks, this.tokenSwapInfo.currentSqrtPrice, this.tokenSwapInfo.fee, this.tokenSwapInfo.currentLiquity, amountIn)
+    }
+
+    /**
+     * Get nearest tick by price
+     * @param price The price
+     * @returns The tick
+     */
+    getNearestTickByPrice(price: Decimal): number {
+        invariant(this.isLoaded, "The token swap not load")
+        return getNearestTickByPrice(price, this.tokenSwapInfo.tickSpace)
+    }
+
+    /* @internal */
+    getPositionInfo(positionId: PublicKey): PositionInfo | undefined {
+        invariant(this.isLoaded, "The token swap not load")
+        return this.positions.get(positionId.toBase58())
+    }
+
+    /* @internal */
+    choosePosition(): PublicKey | null {
+        invariant(this.isLoaded, "The token swap not load")
+        for (let [key, val] of this.positionsKeys) {
+            if (val < MAX_ACCOUNT_POSITION_LENGTH) {
+                return key
+            }
+        }
+        return null
+    }
+
+    /* for debug */
+    log() {
+        let payer = this.payer !== null ? this.payer.publicKey.toBase58() : "null"
+        console.log(JSON.stringify({
+            "programId": this.programId.toString(),
+            "tokenSwapKey": this.tokenSwapKey.toString(),
+            "payer": payer,
+            "authority": this.authority.toString(),
+            "currentTick": this.currentTick,
+            "currentPrice": this.tokenSwapInfo.currentSqrtPrice.pow(2).toString(),
+            "tokenSwapInfo": {
+                "accountType": this.tokenSwapInfo.accountType,
+                "version": this.tokenSwapInfo.version,
+                "isInitialized": this.tokenSwapInfo.isInitialized,
+                "nonce": this.tokenSwapInfo.nonce,
+                "manager": this.tokenSwapInfo.manager.toString(),
+                "managerTokenA": this.tokenSwapInfo.managerTokenA.toString(),
+                "managerTokenB": this.tokenSwapInfo.managerTokenB.toString(),
+                "swapTokenA": this.tokenSwapInfo.swapTokenA.toString(),
+                "swapTokenB": this.tokenSwapInfo.swapTokenB.toString(),
+                "tokenAMint": this.tokenSwapInfo.tokenAMint.toString(),
+                "tokenBMint": this.tokenSwapInfo.tokenBMint.toString(),
+                "ticksKey": this.tokenSwapInfo.ticksKey.toString(),
+                "positionsKey": this.tokenSwapInfo.positionsKey.toString(),
+                "curveType": this.tokenSwapInfo.curveType,
+                "fee": this.tokenSwapInfo.fee,
+                "managerFee": this.tokenSwapInfo.managerFee,
+                "tickSpace": this.tokenSwapInfo.tickSpace,
+                "currentSqrtPrice": this.tokenSwapInfo.currentSqrtPrice,
+                "currentLiquity": this.tokenSwapInfo.currentLiquity,
+                "feeGrowthGlobal0": this.tokenSwapInfo.feeGrowthGlobal0,
+                "feeGrowthGlobal1": this.tokenSwapInfo.feeGrowthGlobal1,
+                "managerFeeA": this.tokenSwapInfo.managerFeeA,
+                "managerFeeB": this.tokenSwapInfo.managerFeeB
+
+            },
+            "positions": Object.fromEntries(this.positions),
+            "positionsKeys": Object.fromEntries(this.positionsKeys),
+            "ticks": this.ticks,
+        }, null, 4))
+    }
 }

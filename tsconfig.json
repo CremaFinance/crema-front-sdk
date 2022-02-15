@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "target": "esnext",
-        "module": "CommonJS",
+        "target": "ES2018",
+        "module": "ESNext",
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
@@ -10,10 +10,20 @@
             "node_modules/@types",
             "types"
         ],
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "declaration": true,
+        "outDir": "./dist"
     },
+
     "include": [
-        "src",
-        "types"
+        "./src"
+    ],
+    "exclude": [
+        "./dist",
+        "./node_modules",
+        "./cli",
+        "./.yarn",
+        "./.vscode",
+        "./types"
     ]
 }
