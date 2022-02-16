@@ -1,21 +1,19 @@
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { PublicKey, TransactionInstruction } from '@solana/web3.js'
-import { struct, u8 } from '@solana/buffer-layout'
-import Decimal from 'decimal.js'
-import { decimalU64 } from '../util/layout'
-import { TokenSwapInstruction } from './instruction'
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { struct, u8 } from "@solana/buffer-layout";
+import Decimal from "decimal.js";
+import { decimalU64 } from "../util/layout";
+import { TokenSwapInstruction } from "./instruction";
 
 interface Data {
-    instruction: number,
-    positionIndex: Decimal
+    instruction: number;
+    positionIndex: Decimal;
 }
 
-const DataLayout = struct<Data>(
-    [
-        u8("instruction"),
-        decimalU64("positionIndex")
-    ]
-)
+const DataLayout = struct<Data>([
+    u8("instruction"),
+    decimalU64("positionIndex"),
+]);
 
 export const claimInstruction = (
     programId: PublicKey,
@@ -30,16 +28,16 @@ export const claimInstruction = (
     nftUser: PublicKey,
     ticksKey: PublicKey,
     positionsKey: PublicKey,
-    positionIndex: Decimal,
+    positionIndex: Decimal
 ): TransactionInstruction => {
-    let data = Buffer.alloc(DataLayout.span)
+    let data = Buffer.alloc(DataLayout.span);
     DataLayout.encode(
         {
             instruction: TokenSwapInstruction.Claim,
-            positionIndex
+            positionIndex,
         },
         data
-    )
+    );
     const keys = [
         { pubkey: tokenSwapKey, isSigner: false, isWritable: false },
         { pubkey: authority, isSigner: false, isWritable: false },
@@ -53,11 +51,11 @@ export const claimInstruction = (
         { pubkey: ticksKey, isSigner: false, isWritable: false },
         { pubkey: positionsKey, isSigner: false, isWritable: true },
         { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-    ]
+    ];
 
     return new TransactionInstruction({
         keys,
         programId,
         data,
-    })
-}
+    });
+};
