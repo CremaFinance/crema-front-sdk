@@ -1,4 +1,4 @@
-import { struct, s32, u8, blob, seq } from "buffer-layout"
+import { struct, s32, u8, blob, seq } from "@solana/buffer-layout"
 import { decimal128, decimalU128, Parser, publicKey } from '../util/layout'
 import Decimal from "decimal.js"
 import { AccountInfo, PublicKey } from "@solana/web3.js"
@@ -32,7 +32,7 @@ export interface TicksAccountDataFlat {
     tokenSwapKey: PublicKey,
     accountType: number,
     len: number,
-    dataFlat: Buffer
+    dataFlat: Uint8Array
 }
 
 export const TickLayout = struct<Tick>(

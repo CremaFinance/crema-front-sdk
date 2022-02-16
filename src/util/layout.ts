@@ -1,4 +1,4 @@
-import { blob, Layout } from 'buffer-layout';
+import { blob, Layout, Blob } from '@solana/buffer-layout';
 import { PublicKey, AccountInfo } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import { DecimalExt } from './decimalExt';
@@ -46,19 +46,19 @@ export const publicKey = (property = 'publicKey'): Layout<PublicKey> => {
     return publicKeyLayout;
 };
 
-export const uint64 = (property: string = 'uint128'): Layout<Buffer> => {
+export const uint64 = (property: string = 'uint128'): Blob => {
     return blob(8, property)
 }
 
-export const int64 = (property: string = 'uint128'): Layout<Buffer> => {
+export const int64 = (property: string = 'uint128'): Blob => {
     return blob(8, property)
 }
 
-export const int128 = (property: string = 'uint128'): Layout<Buffer> => {
+export const int128 = (property: string = 'uint128'): Blob => {
     return blob(16, property)
 }
 
-export const uint128 = (property: string = 'uint128'): Layout<Buffer> => {
+export const uint128 = (property: string = 'uint128'): Blob => {
     return blob(16, property)
 }
 
@@ -71,7 +71,7 @@ export const decimal64 = (property: string = 'uint64', precision: number = 0): L
     const _encode = layout.encode.bind(layout)
 
     decimal64Layout.decode = (buffer: Buffer, offset: number) => {
-        const src = _decode(buffer, offset)
+        const src = Buffer.from(_decode(buffer, offset))
         return DecimalExt.from64Buffer(src, precision)
     }
 
@@ -92,7 +92,7 @@ export const decimalU64 = (property: string = 'uint64', precision: number = 0): 
     const decimalU64Layout = layout as Layout<unknown> as Layout<Decimal>
 
     decimalU64Layout.decode = (buffer: Buffer, offset: number) => {
-        const src = _decode(buffer, offset)
+        const src = Buffer.from(_decode(buffer, offset))
         return DecimalExt.fromU64Buffer(src, precision)
     }
 
@@ -113,7 +113,7 @@ export const decimal128 = (property: string = 'uint64', precision: number = 0): 
     const decimal128Layout = layout as Layout<unknown> as Layout<Decimal>
 
     decimal128Layout.decode = (buffer: Buffer, offset: number) => {
-        const src = _decode(buffer, offset)
+        const src = Buffer.from(_decode(buffer, offset))
         return DecimalExt.from128Buffer(src, precision)
     }
 
@@ -134,7 +134,7 @@ export const decimalU128 = (property: string = 'uint64', precision: number = 0):
     const decimalU128Layout = layout as Layout<unknown> as Layout<Decimal>
 
     decimalU128Layout.decode = (buffer: Buffer, offset: number) => {
-        const src = _decode(buffer, offset)
+        const src = Buffer.from(_decode(buffer, offset))
         let val = DecimalExt.fromU128Buffer(src, precision)
         return val
     }

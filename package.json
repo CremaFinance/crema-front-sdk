@@ -16,8 +16,8 @@
     "@solana/web3.js": ">= 1.33.0"
   },
   "dependencies": {
-    "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.1.8",
+    "@solana/buffer-layout": "^4.0.0",
     "decimal.js": "^10.3.1",
     "tiny-invariant": "^1.2.0"
   },
