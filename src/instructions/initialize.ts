@@ -1,6 +1,6 @@
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { PublicKey, TransactionInstruction } from '@solana/web3.js'
-import { struct, u8, u32 } from 'buffer-layout'
+import { struct, u8, u32 } from '@solana/buffer-layout'
 import Decimal from 'decimal.js'
 import { decimalU128, decimalU64 } from '../util/layout'
 import { TokenSwapInstruction } from './instruction'

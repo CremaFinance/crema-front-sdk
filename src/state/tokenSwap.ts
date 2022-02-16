@@ -1,5 +1,5 @@
 import { decimalU128, decimalU64, Parser, publicKey } from "../util/layout";
-import { u8, u32, struct } from "buffer-layout";
+import { u8, u32, struct } from "@solana/buffer-layout";
 import { AccountInfo, PublicKey } from "@solana/web3.js";
 import Decimal from "decimal.js";
 

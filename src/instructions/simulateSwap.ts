@@ -1,5 +1,5 @@
 import { PublicKey, TransactionInstruction } from '@solana/web3.js'
-import { struct, u8 } from 'buffer-layout'
+import { struct, u8 } from '@solana/buffer-layout'
 import Decimal from 'decimal.js'
 import { decimalU64 } from '../util/layout'
 import { TokenSwapInstruction } from './instruction'
