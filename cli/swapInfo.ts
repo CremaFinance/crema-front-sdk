@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TokenSwap } from "../src/tokenSwap";
-import { url } from "../src/util/url";
+import { url } from "./url";
 
 async function main() {
   //let url = "https://connect.runnode.com/?apikey=cNPK9vJTf6ynARvcPaav"

@@ -1,7 +1,7 @@
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
 import { TokenSwap } from "../src/tokenSwap";
 import { Decimal } from "decimal.js";
-import { url } from "../src/util/url";
+import { url } from "./url";
 import { KPFromFile } from "./utils";
 
 async function main() {

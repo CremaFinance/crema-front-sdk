@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TokenSwap } from "../src/tokenSwap";
 import { Decimal } from "decimal.js";
-import { url } from "../src/util/url";
+import { url } from "./url";
 
 async function main() {
     let conn = new Connection(url, "recent");

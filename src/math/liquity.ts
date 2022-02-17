@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { Tick } from "../state";
 import invariant from "tiny-invariant";
-import { tick2SqrtPrice } from ".";
+import { tick2SqrtPrice } from "./tick";
 
 /**
  * Calculate liquity and another token amount when current tick is in [tickLower, tickUpper]
