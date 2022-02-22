@@ -668,47 +668,6 @@ export class TokenSwap {
     console.log(res);
   }
 
-  async preSwapAV2(
-    amountIn: Decimal,
-    minimumAmountOut: Decimal,
-    userTransferAuthority: Signer,
-    userSource: PublicKey,
-    userDestination: PublicKey
-  ) {
-    if (!this.isLoaded) {
-      await this.load();
-    }
-    let transaction = new Transaction().add(
-      swapInstruction(
-        this.programId,
-        this.tokenSwapKey,
-        this.authority,
-        userTransferAuthority.publicKey,
-        userSource,
-        userDestination,
-        this.tokenSwapInfo.swapTokenA,
-        this.tokenSwapInfo.swapTokenB,
-        this.tokenSwapInfo.ticksKey,
-        amountIn,
-        minimumAmountOut
-      )
-    );
-    let res = await this.conn.simulateTransaction(
-      transaction,
-      [],
-      [userSource, userDestination]
-    );
-    console.log(res);
-    invariant(res.value.accounts != null);
-
-    console.log(res.value.accounts[0]);
-    console.log(res.value.accounts[1]);
-    let a = parseTokenAccountData(
-      Buffer.from(res.value.accounts[0].data[0], "base64")
-    );
-    console.log(a.amount.toString());
-  }
-
   /**
    *
    * Collect fee from specified position
