@@ -1,18 +1,18 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TokenSwap } from "../src/tokenSwap";
 import { Decimal } from "decimal.js";
-import { url } from "../src/util/url";
+import { url } from "./url";
 
 async function main() {
     let conn = new Connection(url, "recent");
     let programID = new PublicKey("6MLxLqiXaaSUpkgMnWDTuejNZEz3kE7k2woyHGVFw319");
-    let swapKey = new PublicKey("8BHKY3e1N2EmH89yXuxhYhd2aP2Ex5xhoZUJ4eUTsekY");
-
+    let swapKey = new PublicKey("8J3avAjuRfL2CYFKKDwhhceiRoajhrHv9kN5nUiEnuBG");
     let swap = await new TokenSwap(conn, programID, swapKey, null).load();
 
-    let res = swap.preSwapA(new Decimal(10_0000_0000));
+    let amountIn = new Decimal(600000_000_000);
+    let res = swap.preSwapB(amountIn);
 
-    console.log("USDT->USDC");
+    console.log("USDC->USDT");
     console.log(
         "currentSqrtPrice   :",
         swap.tokenSwapInfo.currentSqrtPrice.toString()
@@ -34,8 +34,28 @@ async function main() {
             .toFixed(10)
             .toString()
     );
-    console.log("afterPrice         :", res.afterPrice.toString());
+    console.log(
+        "currentBPrice      :",
+        swap.tokenSwapInfo.currentSqrtPrice.pow(2)
+    );
+    console.log("afterAPrice        :", res.afterPrice.toString());
     console.log("afterLiquity       :", res.afterLiquity.toString());
+    console.log(
+        "impactA            :",
+        res.impactA
+            .mul(100)
+            .toDecimalPlaces(6)
+            .toString(),
+        "%"
+    );
+    console.log(
+        "impactB            :",
+        res.impactB
+            .mul(100)
+            .toDecimalPlaces(6)
+            .toString(),
+        "%"
+    );
     console.log(
         "deltaLiquity       :",
         swap.tokenSwapInfo.currentLiquity.sub(res.afterLiquity).toString()
