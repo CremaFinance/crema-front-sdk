@@ -1060,15 +1060,40 @@ export class TokenSwap {
     feeUsed: Decimal;
     afterPrice: Decimal;
     afterLiquity: Decimal;
+    impactA: Decimal;
+    impactB: Decimal;
   } {
     invariant(this.isLoaded, "The token swap not load");
-    return calculateSwapA2B(
+    const res = calculateSwapA2B(
       this.ticks,
       this.tokenSwapInfo.currentSqrtPrice,
       this.tokenSwapInfo.fee,
       this.tokenSwapInfo.currentLiquity,
       amountIn
     );
+    let currentPriceA = this.tokenSwapInfo.currentSqrtPrice.pow(2);
+    let afterPriceA = res.afterPrice.pow(2);
+    let impactA = afterPriceA
+      .sub(currentPriceA)
+      .div(currentPriceA)
+      .abs();
+    let one = new Decimal(1);
+    let currentPriceB = one.div(currentPriceA);
+    let afterPriceB = one.div(afterPriceA);
+    let impactB = afterPriceB
+      .sub(currentPriceB)
+      .div(currentPriceB)
+      .abs();
+
+    return {
+      amountOut: res.amountOut,
+      amountUsed: res.amountUsed,
+      feeUsed: res.feeUsed,
+      afterPrice: res.afterPrice,
+      afterLiquity: res.afterLiquity,
+      impactA,
+      impactB,
+    };
   }
 
   /**
@@ -1084,15 +1109,40 @@ export class TokenSwap {
     feeUsed: Decimal;
     afterPrice: Decimal;
     afterLiquity: Decimal;
+    impactA: Decimal;
+    impactB: Decimal;
   } {
     invariant(this.isLoaded, "The token swap not load");
-    return calculateSwapB2A(
+    const res = calculateSwapB2A(
       this.ticks,
       this.tokenSwapInfo.currentSqrtPrice,
       this.tokenSwapInfo.fee,
       this.tokenSwapInfo.currentLiquity,
       amountIn
     );
+    let currentPriceA = this.tokenSwapInfo.currentSqrtPrice.pow(2);
+    let afterPriceA = res.afterPrice.pow(2);
+    let impactA = afterPriceA
+      .sub(currentPriceA)
+      .div(currentPriceA)
+      .abs();
+    let one = new Decimal(1);
+    let currentPriceB = one.div(currentPriceA);
+    let afterPriceB = one.div(afterPriceA);
+    let impactB = afterPriceB
+      .sub(currentPriceB)
+      .div(currentPriceB)
+      .abs();
+
+    return {
+      amountOut: res.amountOut,
+      amountUsed: res.amountUsed,
+      feeUsed: res.feeUsed,
+      afterPrice: res.afterPrice,
+      afterLiquity: res.afterLiquity,
+      impactA,
+      impactB,
+    };
   }
 
   /**

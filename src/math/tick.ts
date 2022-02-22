@@ -233,7 +233,7 @@ export function calculateSwapA2B(
         amountOut: out.add(amountOut),
         amountUsed,
         feeUsed,
-        afterPrice: afterSqrtPrice,
+        afterPrice: afterSqrtPrice.pow(2),
         afterLiquity: liquity,
       };
     } else {
