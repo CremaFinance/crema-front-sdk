@@ -33,19 +33,16 @@ export class DecimalExt {
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
     );
-    let bn =
-      buffer[7] >= 0x80
-        ? new BN(
-            [...buffer]
-              .map((i) => `00${Math.abs(~i & 0xff).toString(16)}`.slice(-2))
-              .join(""),
-            16,
-            "le"
-          )
-            .add(new BN(1))
-            .neg()
-        : new BN(buffer, "le");
-    return new Decimal(bn.toString()).div(TEN.pow(precision));
+
+    if (buffer[7] > 0x80) {
+      let ss = [];
+      for (let v of buffer) {
+        ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
+      }
+      let bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
+      return new Decimal(bn.toString()).div(TEN.pow(precision));
+    }
+    return new Decimal(new BN(buffer, "le").toString()).div(TEN.pow(precision));
   }
 
   /**
@@ -77,19 +74,16 @@ export class DecimalExt {
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
     );
-    let bn =
-      buffer[15] >= 0x80
-        ? new BN(
-            [...buffer]
-              .map((i) => `00${Math.abs(~i & 0xff).toString(16)}`.slice(-2))
-              .join(""),
-            16,
-            "le"
-          )
-            .add(new BN(1))
-            .neg()
-        : new BN(buffer, "le");
-    return new Decimal(bn.toString()).div(TEN.pow(precision));
+
+    if (buffer[15] > 0x80) {
+      let ss = [];
+      for (let v of buffer) {
+        ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
+      }
+      let bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
+      return new Decimal(bn.toString()).div(TEN.pow(precision));
+    }
+    return new Decimal(new BN(buffer, "le").toString()).div(TEN.pow(precision));
   }
 
   /**
