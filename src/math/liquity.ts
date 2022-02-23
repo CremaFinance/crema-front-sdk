@@ -143,14 +143,18 @@ export function calculateLiquityTable(
   minLiquity: Decimal;
   liquitys: Liquity[];
 } {
-  let liquity: Liquity = { lowerTick: 0, upperTick: 0, amount: new Decimal(0) };
   let minLiquity = new Decimal(0);
   let maxLiquity = new Decimal(0);
   const liquitys: Liquity[] = [];
+  let liquity: Liquity = {
+    lowerTick: 0,
+    upperTick: 0,
+    amount: new Decimal(0),
+  };
   for (let i = 0; i < ticks.length; i++) {
     if (liquity.amount.equals(0)) {
-      liquity.amount = liquity.amount.add(ticks[i].liquityNet);
       liquity.lowerTick = ticks[i].tick;
+      liquity.amount = ticks[i].liquityNet;
       continue;
     }
     liquity.upperTick = ticks[i].tick;
@@ -167,6 +171,7 @@ export function calculateLiquityTable(
       amount: liquity.amount,
     });
     liquity.amount = liquity.amount.add(ticks[i].liquityNet);
+    liquity.lowerTick = ticks[i].tick;
   }
   return { maxLiquity, minLiquity, liquitys };
 }

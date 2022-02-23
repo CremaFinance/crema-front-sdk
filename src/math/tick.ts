@@ -12,7 +12,7 @@ export const MIN_TICK = -MAX_TICK;
 // The price pieces
 // price = pow(PIECES, TICK)
 export const PIECES = new Decimal("1.0001");
-
+export const PRICE_OFFSET = new Decimal("1e-12");
 export const MAX_PRICE = PIECES.pow(MAX_TICK);
 export const MIN_PRICE = PIECES.pow(MIN_TICK);
 export const MAX_SQRT_PRICE = PIECES.pow(MAX_TICK / 2);
@@ -190,27 +190,27 @@ export function calculateSwapA2B(
     "invalid liquity"
   );
   invariant(ticks.length > 0, "the ticks is empty");
-  let currentTick = sqrtPrice2Tick(currentSqrtPrice);
-  invariant(currentTick > ticks[0].tick, "out of ticks");
+  //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  invariant(currentSqrtPrice > ticks[0].tickPrice, "out of ticks");
   let liquity = currentLiquity;
   let out = new Decimal(0);
   let remind = amountIn;
   let remindWithFee = new Decimal(0);
   let feeUsed = new Decimal(0);
   let amountUsed = new Decimal(0);
-  let upperSqrtPrice = currentSqrtPrice;
   for (let i = ticks.length - 1; i >= 0; i--) {
     if (liquity.equals(new Decimal(0))) {
-      currentTick = ticks[i].tick;
+      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
       liquity = liquity.sub(ticks[i].liquityNet);
-      upperSqrtPrice = ticks[i].tickPrice;
+      //upperSqrtPrice = ticks[i].tickPrice;
       continue;
     }
-    if (currentTick <= ticks[i].tick) {
+    if (currentSqrtPrice < ticks[i].tickPrice) {
       continue;
     }
+    let upperSqrtPrice = currentSqrtPrice;
     let lowerSqrtPrice = ticks[i].tickPrice;
-    let maxAmountIn = maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity);
+    let maxAmountIn = maxAmountA(lowerSqrtPrice, currentSqrtPrice, liquity);
     let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
       remindWithFee = remind;
@@ -233,7 +233,7 @@ export function calculateSwapA2B(
         amountOut: out.add(amountOut),
         amountUsed,
         feeUsed,
-        afterPrice: afterSqrtPrice.pow(2),
+        afterPrice: afterSqrtPrice,
         afterLiquity: liquity,
       };
     } else {
@@ -242,15 +242,15 @@ export function calculateSwapA2B(
       feeUsed = feeUsed.add(fullStepFee);
       out = out.add(maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity));
       liquity = liquity.sub(ticks[i].liquityNet);
-      currentTick = ticks[i].tick;
-      upperSqrtPrice = ticks[i].tickPrice;
+      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
+      //upperSqrtPrice = ticks[i].tickPrice;
     }
   }
   return {
     amountOut: out,
     amountUsed,
     feeUsed,
-    afterPrice: tick2Price(currentTick),
+    afterPrice: currentSqrtPrice,
     afterLiquity: liquity,
   };
 }
@@ -283,27 +283,28 @@ export function calculateSwapB2A(
     "invalid liquity"
   );
   invariant(ticks.length > 0, "the ticks is empty");
-  let currentTick = sqrtPrice2Tick(currentSqrtPrice);
-  invariant(currentTick < ticks[ticks.length - 1].tick, "out of ticks");
+  //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  invariant(
+    currentSqrtPrice.lessThan(ticks[ticks.length - 1].tickPrice),
+    "out of ticks"
+  );
   let liquity = currentLiquity;
   let out = new Decimal(0);
   let remind = amountIn;
   let remindWithFee = new Decimal(0);
   let amountUsed = new Decimal(0);
   let feeUsed = new Decimal(0);
-  let lowerSqrtPrice = currentSqrtPrice;
   for (let i = 0; i < ticks.length; i++) {
     if (liquity.equals(new Decimal(0))) {
-      currentTick = ticks[i].tick;
+      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
       liquity = liquity.add(ticks[i].liquityNet);
-      lowerSqrtPrice = ticks[i].tickPrice;
       continue;
     }
-    if (currentTick >= ticks[i].tick) {
+    if (currentSqrtPrice > ticks[i].tickPrice) {
       continue;
     }
     let upperSqrtPrice = ticks[i].tickPrice;
-    let maxAmountIn = maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity);
+    let maxAmountIn = maxAmountB(currentSqrtPrice, upperSqrtPrice, liquity);
     let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
       remindWithFee = remind;
@@ -315,7 +316,7 @@ export function calculateSwapB2A(
         .mul(new Decimal(1).sub(fee))
         .toDP(0, Decimal.ROUND_UP);
       let { amountOut, afterSqrtPrice } = swapB2A(
-        lowerSqrtPrice,
+        currentSqrtPrice,
         liquity,
         remindWithFee
       );
@@ -332,17 +333,16 @@ export function calculateSwapB2A(
       remind = remindWithFee.sub(maxAmountIn);
       amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee);
       feeUsed = feeUsed.add(fullStepFee);
-      out = out.add(maxAmountA(lowerSqrtPrice, upperSqrtPrice, liquity));
+      out = out.add(maxAmountA(currentSqrtPrice, upperSqrtPrice, liquity));
       liquity = liquity.add(ticks[i].liquityNet);
-      currentTick = ticks[i].tick;
-      lowerSqrtPrice = ticks[i].tickPrice;
+      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
     }
   }
   return {
     amountOut: out,
     amountUsed,
     feeUsed,
-    afterPrice: tick2Price(currentTick),
+    afterPrice: currentSqrtPrice,
     afterLiquity: liquity,
   };
 }

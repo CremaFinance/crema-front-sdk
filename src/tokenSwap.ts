@@ -951,7 +951,7 @@ export class TokenSwap {
     );
     let lowerTick: Tick | null = null;
     let upperTick: Tick | null = null;
-    for (let i = 0; i <= this.ticks.length; i++) {
+    for (let i = 0; i < this.ticks.length; i++) {
       if (this.ticks[i].tick == positionInfo.lowerTick) {
         lowerTick = this.ticks[i];
       }
@@ -968,42 +968,48 @@ export class TokenSwap {
       `The position upper tick:${positionInfo.upperTick} not found`
     );
 
-    if (this.currentTick < lowerTick.tick) {
-      return {
-        amountA: lowerTick.feeGrowthOutside0
-          .sub(upperTick.feeGrowthOutside0)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideALast),
-        amountB: lowerTick.feeGrowthOutside1
-          .sub(upperTick.feeGrowthOutside1)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideBLast),
-      };
-    } else if (this.currentTick > upperTick.tick) {
-      return {
-        amountA: upperTick.feeGrowthOutside0
-          .sub(lowerTick.feeGrowthOutside0)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideBLast),
-        amountB: upperTick.feeGrowthOutside1
-          .sub(lowerTick.feeGrowthOutside1)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideBLast),
-      };
+    let lowerFeeOutSideA = new Decimal(0);
+    let lowerFeeOutSideB = new Decimal(0);
+    let upperFeeOutSideA = new Decimal(0);
+    let upperFeeOutSideB = new Decimal(0);
+    let currentSqrtPrice = this.tokenSwapInfo.currentSqrtPrice;
+
+    if (lowerTick.tickPrice.lessThan(currentSqrtPrice)) {
+      lowerFeeOutSideA = lowerTick.feeGrowthOutside0;
+      lowerFeeOutSideB = lowerTick.feeGrowthOutside1;
     } else {
-      return {
-        amountA: this.tokenSwapInfo.feeGrowthGlobal0
-          .sub(upperTick.feeGrowthOutside0)
-          .sub(lowerTick.feeGrowthOutside0)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideALast),
-        amountB: this.tokenSwapInfo.feeGrowthGlobal1
-          .sub(upperTick.feeGrowthOutside1)
-          .sub(lowerTick.feeGrowthOutside1)
-          .mul(positionInfo.liquity)
-          .sub(positionInfo.feeGrowthInsideBLast),
-      };
+      lowerFeeOutSideA = this.tokenSwapInfo.feeGrowthGlobal0.sub(
+        lowerTick.feeGrowthOutside0
+      );
+      lowerFeeOutSideB = this.tokenSwapInfo.feeGrowthGlobal1.sub(
+        lowerTick.feeGrowthOutside1
+      );
     }
+
+    if (upperTick.tickPrice.lessThan(currentSqrtPrice)) {
+      upperFeeOutSideA = this.tokenSwapInfo.feeGrowthGlobal0.sub(
+        upperTick.feeGrowthOutside0
+      );
+      upperFeeOutSideB = this.tokenSwapInfo.feeGrowthGlobal1.sub(
+        upperTick.feeGrowthOutside1
+      );
+    } else {
+      upperFeeOutSideA = upperTick.feeGrowthOutside0;
+      upperFeeOutSideB = upperTick.feeGrowthOutside1;
+    }
+
+    return {
+      amountA: this.tokenSwapInfo.feeGrowthGlobal0
+        .sub(lowerFeeOutSideA)
+        .sub(upperFeeOutSideA)
+        .sub(positionInfo.feeGrowthInsideALast)
+        .mul(positionInfo.liquity),
+      amountB: this.tokenSwapInfo.feeGrowthGlobal1
+        .sub(lowerFeeOutSideB)
+        .sub(upperFeeOutSideB)
+        .sub(positionInfo.feeGrowthInsideBLast)
+        .mul(positionInfo.liquity),
+    };
   }
 
   /**
