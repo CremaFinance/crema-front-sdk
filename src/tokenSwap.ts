@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import invariant from "tiny-invariant";
-import { sendAndConfirmTransaction, parseTokenAccountData } from "./util";
+import { sendAndConfirmTransaction } from "./util";
 import { TransactionSignature } from "@solana/web3.js";
 import { MintLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {

@@ -10,8 +10,7 @@
     "mint-pos": "ts-node ./cli/mintPosition.ts",
     "swap-info": "ts-node ./cli/swapInfo.ts",
     "simulate-swap": "ts-node ./cli/simulateSwap.ts",
-    "test:unit": "yarn mocha ./src/*/*.test.ts --require ts-node/register",
-    "liquity": "ts-node ./cli/liquity.ts"
+    "test:unit": "yarn mocha ./src/*/*.test.ts --require ts-node/register"
   },
   "peerDependencies": {
     "@solana/web3.js": ">= 1.33.0"

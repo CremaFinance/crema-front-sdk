@@ -34,7 +34,7 @@ export class DecimalExt {
       `Invalid precision: ${precision}`
     );
 
-    if (buffer[7] > 0x80) {
+    if (buffer[7] >= 0x80) {
       let ss = [];
       for (let v of buffer) {
         ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
@@ -75,7 +75,7 @@ export class DecimalExt {
       `Invalid precision: ${precision}`
     );
 
-    if (buffer[15] > 0x80) {
+    if (buffer[15] >= 0x80) {
       let ss = [];
       for (let v of buffer) {
         ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
