@@ -7,7 +7,7 @@ import { AccountInfo, PublicKey } from "@solana/web3.js";
 export const TICKS_ACCOUNT_SIZE = 504000;
 
 // devnet
-//export const TICKS_ACCOUNT_SIZE = 840000
+// export const TICKS_ACCOUNT_SIZE = 840000;
 
 export interface Tick {
   tick: number;
@@ -41,8 +41,8 @@ export const TickLayout = struct<Tick>(
     decimalU128("tickPrice", 12),
     decimalU128("liquityGross"),
     decimal128("liquityNet"),
-    decimalU128("feeGrowthOutsideA", 16),
-    decimalU128("feeGrowthOutsideB", 16),
+    decimalU128("feeGrowthOutside0", 16),
+    decimalU128("feeGrowthOutside1", 16),
   ],
   "tickInfo"
 );
