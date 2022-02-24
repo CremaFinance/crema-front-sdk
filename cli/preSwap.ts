@@ -10,8 +10,7 @@ async function main() {
 
   //let swapKey = new PublicKey("8J3avAjuRfL2CYFKKDwhhceiRoajhrHv9kN5nUiEnuBG");
   let swap = await new TokenSwap(conn, programID, swapKey, null).load();
-
-  let amountIn = new Decimal(10000_000000);
+  let amountIn = new Decimal(1000000_000_000);
   let res = swap.preSwapB(amountIn);
 
   console.log("SWAP A");
@@ -23,7 +22,7 @@ async function main() {
   console.log("tokenBMint         :", swap.tokenSwapInfo.tokenBMint.toBase58());
   console.log("swapTokenA         :", swap.tokenSwapInfo.swapTokenA.toBase58());
   console.log("swapTokenB         :", swap.tokenSwapInfo.swapTokenB.toBase58());
-  console.log("fee                :", swap.tokenSwapInfo.fee.toString());
+  console.log("feeRate            :", swap.tokenSwapInfo.fee.toString());
   console.log(
     "amountIn           :",
     res.amountUsed
@@ -38,12 +37,19 @@ async function main() {
       .toFixed(10)
       .toString()
   );
+  console.log("afterLiquity       :", res.afterLiquity.toString());
   console.log(
-    "currentBPrice      :",
+    "currentPriceA      :",
     swap.tokenSwapInfo.currentSqrtPrice.pow(2)
   );
-  console.log("afterAPrice        :", res.afterPrice.toString());
-  console.log("afterLiquity       :", res.afterLiquity.toString());
+  console.log(
+    "currentPriceB      :",
+    new Decimal(1).div(swap.tokenSwapInfo.currentSqrtPrice.pow(2)).toString()
+  );
+  console.log("transactionPriceA  :", res.transactionPriceA.toString());
+  console.log("transactionPriceB  :", res.transactionPriceB.toString());
+  console.log("afterPriceA        :", res.afterPriceA.toString());
+  console.log("afterPriceB        :", res.afterPriceB.toString());
   console.log(
     "impactA            :",
     res.impactA
