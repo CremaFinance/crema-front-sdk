@@ -1003,12 +1003,14 @@ export class TokenSwap {
         .sub(lowerFeeOutSideA)
         .sub(upperFeeOutSideA)
         .sub(positionInfo.feeGrowthInsideALast)
-        .mul(positionInfo.liquity),
+        .mul(positionInfo.liquity)
+        .add(positionInfo.tokenAFee),
       amountB: this.tokenSwapInfo.feeGrowthGlobal1
         .sub(lowerFeeOutSideB)
         .sub(upperFeeOutSideB)
         .sub(positionInfo.feeGrowthInsideBLast)
-        .mul(positionInfo.liquity),
+        .mul(positionInfo.liquity)
+        .add(positionInfo.tokenBFee),
     };
   }
 
@@ -1023,10 +1025,13 @@ export class TokenSwap {
     amountOut: Decimal;
     amountUsed: Decimal;
     feeUsed: Decimal;
-    afterPrice: Decimal;
     afterLiquity: Decimal;
     impactA: Decimal;
     impactB: Decimal;
+    transactionPriceA: Decimal;
+    transactionPriceB: Decimal;
+    afterPriceA: Decimal;
+    afterPriceB: Decimal;
   } {
     invariant(this.isLoaded, "The token swap not load");
     const res = calculateSwapA2B(
@@ -1037,27 +1042,32 @@ export class TokenSwap {
       amountIn
     );
     let currentPriceA = this.tokenSwapInfo.currentSqrtPrice.pow(2);
-    let afterPriceA = res.afterPrice.pow(2);
-    let impactA = afterPriceA
+    let currentPriceB = new Decimal(1).div(currentPriceA);
+    let transactionPriceA = res.amountOut.div(res.amountUsed);
+    let transactionPriceB = res.amountUsed.div(res.amountOut);
+    let impactA = transactionPriceA
       .sub(currentPriceA)
       .div(currentPriceA)
       .abs();
-    let one = new Decimal(1);
-    let currentPriceB = one.div(currentPriceA);
-    let afterPriceB = one.div(afterPriceA);
-    let impactB = afterPriceB
+    let impactB = transactionPriceB
       .sub(currentPriceB)
       .div(currentPriceB)
       .abs();
+
+    let afterPriceA = res.afterPrice.pow(2);
+    let afterPriceB = new Decimal(1).div(afterPriceA);
 
     return {
       amountOut: res.amountOut,
       amountUsed: res.amountUsed,
       feeUsed: res.feeUsed,
-      afterPrice: res.afterPrice,
+      afterPriceA,
+      afterPriceB,
       afterLiquity: res.afterLiquity,
       impactA,
       impactB,
+      transactionPriceA,
+      transactionPriceB,
     };
   }
 
@@ -1072,10 +1082,13 @@ export class TokenSwap {
     amountOut: Decimal;
     amountUsed: Decimal;
     feeUsed: Decimal;
-    afterPrice: Decimal;
     afterLiquity: Decimal;
     impactA: Decimal;
     impactB: Decimal;
+    transactionPriceA: Decimal;
+    transactionPriceB: Decimal;
+    afterPriceA: Decimal;
+    afterPriceB: Decimal;
   } {
     invariant(this.isLoaded, "The token swap not load");
     const res = calculateSwapB2A(
@@ -1086,27 +1099,31 @@ export class TokenSwap {
       amountIn
     );
     let currentPriceA = this.tokenSwapInfo.currentSqrtPrice.pow(2);
-    let afterPriceA = res.afterPrice.pow(2);
-    let impactA = afterPriceA
+    let currentPriceB = new Decimal(1).div(currentPriceA);
+    let transactionPriceA = res.amountUsed.div(res.amountOut);
+    let transactionPriceB = res.amountOut.div(res.amountUsed);
+    let impactA = transactionPriceA
       .sub(currentPriceA)
       .div(currentPriceA)
       .abs();
-    let one = new Decimal(1);
-    let currentPriceB = one.div(currentPriceA);
-    let afterPriceB = one.div(afterPriceA);
-    let impactB = afterPriceB
+    let impactB = transactionPriceB
       .sub(currentPriceB)
       .div(currentPriceB)
       .abs();
+    let afterPriceA = res.afterPrice.pow(2);
+    let afterPriceB = new Decimal(1).div(afterPriceA);
 
     return {
       amountOut: res.amountOut,
       amountUsed: res.amountUsed,
       feeUsed: res.feeUsed,
-      afterPrice: res.afterPrice,
       afterLiquity: res.afterLiquity,
       impactA,
       impactB,
+      transactionPriceA,
+      transactionPriceB,
+      afterPriceA,
+      afterPriceB,
     };
   }
 
