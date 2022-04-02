@@ -39,7 +39,6 @@ export async function getAssociatedTokenAddress(
  * Get a create associated token account instruction
  * @param tokenMint The mint of token
  * @param owner The owner associated token address
- * @param authority The authority token account address
  * @param payer The pays for transaction
  * @returns
  */
@@ -94,16 +93,15 @@ export async function getTokenAccounts(
     programId: TOKEN_PROGRAM_ID,
   });
   const accountInfos: AccountInfo[] = [];
-  for (let i = 0; i < accounts.value.length; i++) {
-    const { pubkey, account } = accounts.value[i];
+  accounts.value.forEach((v) => {
     invariant(
-      account?.data !== null,
-      `The token account:${pubkey.toBase58()} data is null`
+      v.account.data !== null,
+      `The token account:${v.pubkey.toBase58()} data is null`
     );
-    const accountInfo = parseTokenAccount(account);
-    accountInfo.address = pubkey;
+    const accountInfo = parseTokenAccount(v.account);
+    accountInfo.address = v.pubkey;
     accountInfos.push(accountInfo);
-  }
+  });
   return accountInfos;
 }
 

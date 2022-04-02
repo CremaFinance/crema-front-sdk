@@ -2,8 +2,9 @@ import assert from "assert";
 import BN from "bn.js";
 import { expect } from "chai";
 import Decimal from "decimal.js";
+import invariant from "tiny-invariant";
 
-import { DecimalExt } from "./decimalExt";
+import { DecimalExt } from "../src/util/decimalExt";
 
 const MAX_64 = "9223372036854775807";
 const MIN_64 = "-9223372036854775808";
@@ -16,7 +17,7 @@ const MIN_128_BUF = Buffer.from([
 ]);
 
 export class Numberu64 extends BN {
-  toBuffer(): Buffer {
+  override toBuffer(): Buffer {
     return super.toBuffer("le", 8);
   }
   static fromBuffer(buffer: Buffer): Numberu64 {
@@ -26,7 +27,7 @@ export class Numberu64 extends BN {
 }
 
 export class Number128 extends BN {
-  toBuffer(): Buffer {
+  override toBuffer(): Buffer {
     if (super.isNeg()) {
       const buffer = super.add(new BN(1)).toBuffer("le", 16);
       buffer.forEach(function (item, index, input) {
@@ -38,6 +39,7 @@ export class Number128 extends BN {
     }
   }
   static fromBuffer(buffer: Buffer): Number128 {
+    invariant(buffer[15] !== undefined);
     return buffer[15] > 0x80
       ? new BN(
           [...buffer]
@@ -53,7 +55,7 @@ export class Number128 extends BN {
 }
 
 export class Numberu128 extends BN {
-  toBuffer(): Buffer {
+  override toBuffer(): Buffer {
     return super.toBuffer("le", 16);
   }
   static fromBuffer(buffer: Buffer): Numberu128 {

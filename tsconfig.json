@@ -1,28 +1,15 @@
 {
+  "extends": "@saberhq/tsconfig/tsconfig.lib.json",
   "compilerOptions": {
-    "target": "ESNext",
     "module": "CommonJS",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "typeRoots": [
-      "node_modules/@types",
-      "types"
-    ],
-    "moduleResolution": "node",
-    "declaration": true,
-    "outDir": "./dist/cjs"
+    "noEmit": true,
+    "types": [
+      "mocha"
+    ]
   },
   "include": [
-    "./src",
-    "./cli"
-  ],
-  "exclude": [
-    "./dist",
-    "./node_modules",
-    "./.yarn",
-    "./.vscode",
-    "./types"
+    "src/",
+    "test/",
+    "cli/"
   ]
 }

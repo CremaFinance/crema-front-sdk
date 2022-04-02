@@ -32,7 +32,7 @@ export class DecimalExt {
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
     );
-
+    invariant(buffer[7] !== undefined);
     if (buffer[7] >= 0x80) {
       const ss = [];
       for (const v of buffer) {
@@ -74,6 +74,7 @@ export class DecimalExt {
       `Invalid precision: ${precision}`
     );
 
+    invariant(buffer[15] !== undefined);
     if (buffer[15] >= 0x80) {
       const ss = [];
       for (const v of buffer) {

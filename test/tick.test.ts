@@ -1,8 +1,14 @@
 import { expect } from "chai";
 import { Decimal } from "decimal.js";
 
-import { getNearestTickByPrice, maxAmountB } from ".";
-import { MAX_TICK, MIN_TICK, sqrtPrice2Tick, tick2SqrtPrice } from "./tick";
+import {
+  getNearestTickByPrice,
+  maxAmountB,
+  MAX_TICK,
+  MIN_TICK,
+  sqrtPrice2Tick,
+  tick2SqrtPrice,
+} from "../src/math";
 
 const MAX_SQRT_PRICE = new Decimal("4294027728.7238701638");
 const MIN_SQRT_PRICE = new Decimal("2.3288158884274069273608478048194e-10");
