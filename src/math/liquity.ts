@@ -125,7 +125,6 @@ export function calculateLiquityOnlyA(
  * Calculate liquity when current tick is less than tickLower
  * @param tickLower The tick lower
  * @param tickUpper The tick upper
- * @param desiredAmountA The desired amount of token B
  * @returns The liquity
  */
 export function calculateLiquityOnlyB(
@@ -163,12 +162,14 @@ export function calculateLiquityTable(ticks: Tick[]): {
     amount: new Decimal(0),
   };
   for (let i = 0; i < ticks.length; i++) {
+    const tick = ticks[i];
+    invariant(tick !== undefined);
     if (liquity.amount.equals(0)) {
-      liquity.lowerTick = ticks[i].tick;
-      liquity.amount = ticks[i].liquityNet;
+      liquity.lowerTick = tick.tick;
+      liquity.amount = tick.liquityNet;
       continue;
     }
-    liquity.upperTick = ticks[i].tick;
+    liquity.upperTick = tick.tick;
     minLiquity =
       liquity.amount.lessThan(minLiquity) || minLiquity.equals(0)
         ? liquity.amount
@@ -181,8 +182,8 @@ export function calculateLiquityTable(ticks: Tick[]): {
       upperTick: liquity.upperTick,
       amount: liquity.amount,
     });
-    liquity.amount = liquity.amount.add(ticks[i].liquityNet);
-    liquity.lowerTick = ticks[i].tick;
+    liquity.amount = liquity.amount.add(tick.liquityNet);
+    liquity.lowerTick = tick.tick;
   }
   return { maxLiquity, minLiquity, liquitys };
 }
@@ -190,8 +191,6 @@ export function calculateLiquityTable(ticks: Tick[]): {
 /**
  * Calculate max tokenAmount with sliding point.
  * @param liquity.
- * @param current sqrt price.
- * @param sliding point.
  */
 export function calculateSlidTokenAmount(
   tickLower: number,

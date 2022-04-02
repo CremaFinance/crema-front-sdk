@@ -89,7 +89,6 @@ export function tick2Price(tick: number): Decimal {
  * @deprecated please use {@link getNearestTickBySqrtPrice Or getNearestTickByPrice} instead
  * @param sqrtPrice the sqrt price
  * @param tickSpace the tick space
- * @param isLower is the tick is lowwer
  * @returns the tick or null
  */
 export function getNearestTick(
@@ -188,6 +187,7 @@ export function calculateSwapA2B(
   );
   invariant(ticks.length > 0, "the ticks is empty");
   //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  invariant(ticks[0] !== undefined);
   invariant(currentSqrtPrice > ticks[0].tickPrice, "out of ticks");
   let liquity = currentLiquity;
   let out = new Decimal(0);
@@ -196,17 +196,19 @@ export function calculateSwapA2B(
   let feeUsed = new Decimal(0);
   let amountUsed = new Decimal(0);
   for (let i = ticks.length - 1; i >= 0; i--) {
+    const ticksI = ticks[i];
+    invariant(ticksI !== undefined);
     if (liquity.equals(new Decimal(0))) {
-      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
-      liquity = liquity.sub(ticks[i].liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.sub(PRICE_OFFSET);
+      liquity = liquity.sub(ticksI.liquityNet);
       //upperSqrtPrice = ticks[i].tickPrice;
       continue;
     }
-    if (currentSqrtPrice < ticks[i].tickPrice) {
+    if (currentSqrtPrice < ticksI.tickPrice) {
       continue;
     }
     const upperSqrtPrice = currentSqrtPrice;
-    const lowerSqrtPrice = ticks[i].tickPrice;
+    const lowerSqrtPrice = ticksI.tickPrice;
     const maxAmountIn = maxAmountA(lowerSqrtPrice, currentSqrtPrice, liquity);
     const fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
@@ -238,8 +240,8 @@ export function calculateSwapA2B(
       amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee);
       feeUsed = feeUsed.add(fullStepFee);
       out = out.add(maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity));
-      liquity = liquity.sub(ticks[i].liquityNet);
-      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
+      liquity = liquity.sub(ticksI.liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.sub(PRICE_OFFSET);
       //upperSqrtPrice = ticks[i].tickPrice;
     }
   }
@@ -281,8 +283,9 @@ export function calculateSwapB2A(
   );
   invariant(ticks.length > 0, "the ticks is empty");
   //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  const lastTick = ticks[ticks.length - 1];
   invariant(
-    currentSqrtPrice.lessThan(ticks[ticks.length - 1].tickPrice),
+    lastTick !== undefined && currentSqrtPrice.lessThan(lastTick.tickPrice),
     "out of ticks"
   );
   let liquity = currentLiquity;
@@ -292,15 +295,17 @@ export function calculateSwapB2A(
   let amountUsed = new Decimal(0);
   let feeUsed = new Decimal(0);
   for (let i = 0; i < ticks.length; i++) {
+    const ticksI = ticks[i];
+    invariant(ticksI !== undefined);
     if (liquity.equals(new Decimal(0))) {
-      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
-      liquity = liquity.add(ticks[i].liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.add(PRICE_OFFSET);
+      liquity = liquity.add(ticksI.liquityNet);
       continue;
     }
-    if (currentSqrtPrice > ticks[i].tickPrice) {
+    if (currentSqrtPrice > ticksI.tickPrice) {
       continue;
     }
-    const upperSqrtPrice = ticks[i].tickPrice;
+    const upperSqrtPrice = ticksI.tickPrice;
     const maxAmountIn = maxAmountB(currentSqrtPrice, upperSqrtPrice, liquity);
     const fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
@@ -331,8 +336,8 @@ export function calculateSwapB2A(
       amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee);
       feeUsed = feeUsed.add(fullStepFee);
       out = out.add(maxAmountA(currentSqrtPrice, upperSqrtPrice, liquity));
-      liquity = liquity.add(ticks[i].liquityNet);
-      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
+      liquity = liquity.add(ticksI.liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.add(PRICE_OFFSET);
     }
   }
   return {

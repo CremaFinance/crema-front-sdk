@@ -149,10 +149,8 @@ export class TokenSwap {
 
   /**
    * The constructor of TokenSwap
-   * @param conn The connection to use
    * @param programId The token swap program id
    * @param tokenSwapKey The token swap key
-   * @param payer The default pays for the transaction
    */
   constructor(
     provider: Provider,
@@ -210,6 +208,7 @@ export class TokenSwap {
         this.positionsKeys.set(item.pubkey, info.data.positions.length);
         for (let i = 0; i < info.data.positions.length; i++) {
           const p = info.data.positions[i];
+          invariant(p !== undefined);
           this.positions.set(p.nftTokenId.toBase58(), {
             positionsKey: item.pubkey,
             index: new Decimal(i),
@@ -291,20 +290,6 @@ export class TokenSwap {
     return list;
   }
 
-  /**
-   * Create a new token swap
-   * @param conn The connection to use
-   * @param programId The token swap program id
-   * @param payer Pays for the transaction
-   * @param tokenAMint The token A mint
-   * @param tokenBMint The token B mint
-   * @param manager The manager
-   * @param fee The fee of token swap
-   * @param managerFee The manager(protocol) fee of token swap
-   * @param tickSpace The tick space
-   * @param initializePrice The initilized price of token swap
-   * @param payer The pays for the transaction
-   */
   static async createTokenSwap({
     provider,
     programId,
@@ -455,7 +440,6 @@ export class TokenSwap {
    * @param liquity The liquity amount
    * @param maximumAmountA The maximum amount of Token A
    * @param maximumAmountB The maximum amount of Token B
-   * @param userTransferAuthroity The pays for the transaction
    * @returns
    */
   async mintPosition(
@@ -597,7 +581,6 @@ export class TokenSwap {
    * @param liquity The liquity amount
    * @param minimumAmountA The minimum amount of token A want recv
    * @param minimumAmountB The minimum amount of token b want recv
-   * @param userAuthroity The pays for the transaction
    * @returns
    */
   async decreaseLiquity(
@@ -648,7 +631,6 @@ export class TokenSwap {
    * @param direct 0-A swap B, 1-B swap A
    * @param amountIn The amount in
    * @param minimumAmountOut The minimum amount out
-   * @param userTransactionAuthority Account delegated to transfer user's tokens
    * @returns
    */
   async swap(
@@ -711,7 +693,7 @@ export class TokenSwap {
   /**
    *
    * Claim fee from specified position
-   * @param positionID The NFT token public key of position
+   * @param positionId The NFT token public key of position
    * @param userTokenA The user address of token A
    * @param userTokenB The user address of token B
    * @param positionAccount The token account of position NFT.
@@ -752,9 +734,6 @@ export class TokenSwap {
 
   /**
    * Claim the manager fee
-   * @param userTokenA The manager address of token A
-   * @param userTokenB The manager address of token B
-   * @param userAuthroity The pays for the transaction
    * @returns
    */
   async managerClaim(): Promise<TransactionEnvelope> {
@@ -777,7 +756,6 @@ export class TokenSwap {
 
   /**
    * Add a positions account for token swap
-   * @param payer The pays for transaction
    * @returns
    */
   async addPositionsAccount(): Promise<TransactionEnvelope> {
@@ -819,12 +797,12 @@ export class TokenSwap {
       owner
     );
     const positions: PositionInfo[] = [];
-    for (let i = 0; i < tokenAccounts.length; i++) {
-      const position = this.positions.get(tokenAccounts[i].mint.toBase58());
+    tokenAccounts.forEach((v) => {
+      const position = this.positions.get(v.mint.toBase58());
       if (position !== undefined) {
         positions.push(position);
       }
-    }
+    });
     return positions;
   }
 
@@ -869,7 +847,6 @@ export class TokenSwap {
    * Calculate the liquity and token B amount, when the token swap currentTick < upperTick
    * @param tickLower The lower tick
    * @param tickUpper the upper tick
-   * @param desiredAmountA The desired token B amount
    * @returns
    */
   calculateLiquityByTokenB(
@@ -1052,11 +1029,13 @@ export class TokenSwap {
     let lowerTick: Tick | null = null;
     let upperTick: Tick | null = null;
     for (let i = 0; i < this.ticks.length; i++) {
-      if (this.ticks[i].tick === positionInfo.lowerTick) {
-        lowerTick = this.ticks[i];
+      const tick = this.ticks[i];
+      invariant(tick !== undefined);
+      if (tick.tick === positionInfo.lowerTick) {
+        lowerTick = tick;
       }
-      if (this.ticks[i].tick === positionInfo.upperTick) {
-        upperTick = this.ticks[i];
+      if (tick.tick === positionInfo.upperTick) {
+        upperTick = tick;
       }
     }
     invariant(
