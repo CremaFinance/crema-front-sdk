@@ -1,13 +1,12 @@
-import { struct, s32, u8, blob, seq } from "@solana/buffer-layout";
-import { decimal128, decimalU128, Parser, publicKey } from "../util/layout";
-import Decimal from "decimal.js";
-import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { blob, s32, seq, struct, u8 } from "@solana/buffer-layout";
+import type { AccountInfo, PublicKey } from "@solana/web3.js";
+import type Decimal from "decimal.js";
 
-// mainnet-beta
-export const TICKS_ACCOUNT_SIZE = 504000;
+import type { Parser } from "../util/layout";
+import { decimal128, decimalU128, publicKey } from "../util/layout";
 
-// devnet
-// export const TICKS_ACCOUNT_SIZE = 840000;
+//export const TICKS_ACCOUNT_SIZE = 504000;
+export const TICKS_ACCOUNT_TYPE = 1;
 
 export interface Tick {
   tick: number;
@@ -47,19 +46,8 @@ export const TickLayout = struct<Tick>(
   "tickInfo"
 );
 
-export const TicksAccountLayout = struct<TicksAccountDataFlat>(
-  [
-    u8("swapVersion"),
-    publicKey("tokenSwapKey"),
-    u8("accountType"),
-    s32("len"),
-    blob(TICKS_ACCOUNT_SIZE - 38, "dataFlat"),
-  ],
-  "ticksAccount"
-);
-
 export const isTicksAccount = (info: AccountInfo<Buffer>): boolean => {
-  return info.data.length === TICKS_ACCOUNT_SIZE;
+  return info.data.readUInt8(33) === TICKS_ACCOUNT_TYPE;
 };
 
 export const parseTicksAccount: Parser<TicksAccount> = (
@@ -68,14 +56,20 @@ export const parseTicksAccount: Parser<TicksAccount> = (
 ) => {
   if (!isTicksAccount(info)) return;
 
+  const Layout = struct<TicksAccountDataFlat>(
+    [
+      u8("swapVersion"),
+      publicKey("tokenSwapKey"),
+      u8("accountType"),
+      s32("len"),
+      blob(info.data.length - 38, "dataFlat"),
+    ],
+    "ticksAccount"
+  );
+
   const buffer = Buffer.from(info.data);
-  const {
-    swapVersion,
-    tokenSwapKey,
-    accountType,
-    len,
-    dataFlat,
-  } = TicksAccountLayout.decode(buffer);
+  const { swapVersion, tokenSwapKey, accountType, len, dataFlat } =
+    Layout.decode(buffer);
 
   const tickSpan = len * TickLayout.span;
   const ticksBuffer = dataFlat.slice(0, tickSpan);

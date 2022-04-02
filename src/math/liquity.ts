@@ -1,7 +1,8 @@
 import Decimal from "decimal.js";
-import { Tick } from "../state";
 import invariant from "tiny-invariant";
-import { tick2SqrtPrice } from "./tick";
+
+import type { Tick } from "../state";
+import { tick2SqrtPrice } from ".";
 
 /**
  * Calculate liquity and another token amount when current tick is in [tickLower, tickUpper]
@@ -23,27 +24,27 @@ export function calculateLiquity(
   deltaLiquity: Decimal;
 } {
   invariant(tickLower < tickUpper, "The tickLower must less than tickUpper");
-  let lowerSqrtPrice = tick2SqrtPrice(tickLower);
-  let upperSqrtPrice = tick2SqrtPrice(tickUpper);
+  const lowerSqrtPrice = tick2SqrtPrice(tickLower);
+  const upperSqrtPrice = tick2SqrtPrice(tickUpper);
   invariant(
     currentSqrtPrice.greaterThanOrEqualTo(lowerSqrtPrice) &&
       currentSqrtPrice.lessThanOrEqualTo(upperSqrtPrice),
     "The current price must in [lowerPrice,upperPrice]"
   );
-  let one = new Decimal(1);
+  const one = new Decimal(1);
   if (direct === 0) {
-    let deltaLiquity = desiredAmountSrc.div(
+    const deltaLiquity = desiredAmountSrc.div(
       one.div(currentSqrtPrice).sub(one.div(upperSqrtPrice))
     );
-    let desiredAmountDst = deltaLiquity.mul(
+    const desiredAmountDst = deltaLiquity.mul(
       currentSqrtPrice.sub(lowerSqrtPrice)
     );
     return { desiredAmountDst, deltaLiquity };
   } else {
-    let deltaLiquity = desiredAmountSrc.div(
+    const deltaLiquity = desiredAmountSrc.div(
       currentSqrtPrice.sub(lowerSqrtPrice)
     );
-    let desiredAmountDst = deltaLiquity.mul(
+    const desiredAmountDst = deltaLiquity.mul(
       one.div(currentSqrtPrice).sub(one.div(upperSqrtPrice))
     );
     return { desiredAmountDst, deltaLiquity };
@@ -67,22 +68,34 @@ export function calculateTokenAmount(
   amountA: Decimal;
   amountB: Decimal;
 } {
-  let lowerSqrtPrice = tick2SqrtPrice(tickLower);
-  let upperSqrtPrice = tick2SqrtPrice(tickUpper);
+  const lowerSqrtPrice = tick2SqrtPrice(tickLower);
+  const upperSqrtPrice = tick2SqrtPrice(tickUpper);
   if (currentSqrtPrice.lessThan(lowerSqrtPrice)) {
     return {
-      amountA: liquity.div(lowerSqrtPrice).sub(liquity.div(upperSqrtPrice)),
+      amountA: liquity
+        .div(lowerSqrtPrice)
+        .sub(liquity.div(upperSqrtPrice))
+        .toDecimalPlaces(0),
       amountB: new Decimal(0),
     };
   } else if (currentSqrtPrice.greaterThan(upperSqrtPrice)) {
     return {
       amountA: new Decimal(0),
-      amountB: liquity.mul(upperSqrtPrice).sub(liquity.mul(lowerSqrtPrice)),
+      amountB: liquity
+        .mul(upperSqrtPrice)
+        .sub(liquity.mul(lowerSqrtPrice))
+        .toDecimalPlaces(0),
     };
   } else {
     return {
-      amountA: liquity.div(currentSqrtPrice).sub(liquity.div(upperSqrtPrice)),
-      amountB: liquity.mul(currentSqrtPrice).sub(liquity.mul(lowerSqrtPrice)),
+      amountA: liquity
+        .div(currentSqrtPrice)
+        .sub(liquity.div(upperSqrtPrice))
+        .toDecimalPlaces(0),
+      amountB: liquity
+        .mul(currentSqrtPrice)
+        .sub(liquity.mul(lowerSqrtPrice))
+        .toDecimalPlaces(0),
     };
   }
 }
@@ -100,9 +113,9 @@ export function calculateLiquityOnlyA(
   desiredAmountA: Decimal
 ): Decimal {
   invariant(tickLower < tickUpper, "The tickLower must less than tickUpper");
-  let lowerSqrtPrice = tick2SqrtPrice(tickLower);
-  let upperSqrtPrice = tick2SqrtPrice(tickUpper);
-  let one = new Decimal(1);
+  const lowerSqrtPrice = tick2SqrtPrice(tickLower);
+  const upperSqrtPrice = tick2SqrtPrice(tickUpper);
+  const one = new Decimal(1);
   return desiredAmountA.div(
     one.div(lowerSqrtPrice).sub(one.div(upperSqrtPrice))
   );
@@ -121,8 +134,8 @@ export function calculateLiquityOnlyB(
   desiredAmountB: Decimal
 ): Decimal {
   invariant(tickLower < tickUpper, "The tickLower must less than tickUpper");
-  let lowerSqrtPrice = tick2SqrtPrice(tickLower);
-  let upperSqrtPrice = tick2SqrtPrice(tickUpper);
+  const lowerSqrtPrice = tick2SqrtPrice(tickLower);
+  const upperSqrtPrice = tick2SqrtPrice(tickUpper);
   return desiredAmountB.div(upperSqrtPrice.sub(lowerSqrtPrice));
 }
 
@@ -136,9 +149,7 @@ export interface Liquity {
  * @param ticks The tick array of token swap
  * @returns The min, max of liquity, and liquitys array
  */
-export function calculateLiquityTable(
-  ticks: Tick[]
-): {
+export function calculateLiquityTable(ticks: Tick[]): {
   maxLiquity: Decimal;
   minLiquity: Decimal;
   liquitys: Liquity[];
@@ -146,7 +157,7 @@ export function calculateLiquityTable(
   let minLiquity = new Decimal(0);
   let maxLiquity = new Decimal(0);
   const liquitys: Liquity[] = [];
-  let liquity: Liquity = {
+  const liquity: Liquity = {
     lowerTick: 0,
     upperTick: 0,
     amount: new Decimal(0),
@@ -174,4 +185,58 @@ export function calculateLiquityTable(
     liquity.lowerTick = ticks[i].tick;
   }
   return { maxLiquity, minLiquity, liquitys };
+}
+
+/**
+ * Calculate max tokenAmount with sliding point.
+ * @param liquity.
+ * @param current sqrt price.
+ * @param sliding point.
+ */
+export function calculateSlidTokenAmount(
+  tickLower: number,
+  tickUpper: number,
+  liquity: Decimal,
+  currentSqrtPrice: Decimal,
+  slid: Decimal
+): {
+  maxAmountA: Decimal;
+  minAmountA: Decimal;
+  maxAmountB: Decimal;
+  minAmountB: Decimal;
+  amountA: Decimal;
+  amountB: Decimal;
+} {
+  invariant(
+    slid.lessThan(1) && slid.greaterThan(0),
+    `Invalid slid:${slid.toString()}`
+  );
+  const maxSqrtPrice = currentSqrtPrice.mul(new Decimal(1).add(slid).sqrt());
+  const minSqrtPrice = currentSqrtPrice.mul(new Decimal(1).sub(slid).sqrt());
+  const constant = calculateTokenAmount(
+    tickLower,
+    tickUpper,
+    liquity,
+    currentSqrtPrice
+  );
+  const minRes = calculateTokenAmount(
+    tickLower,
+    tickUpper,
+    liquity,
+    minSqrtPrice
+  );
+  const maxRes = calculateTokenAmount(
+    tickLower,
+    tickUpper,
+    liquity,
+    maxSqrtPrice
+  );
+  return {
+    maxAmountA: minRes.amountA,
+    minAmountA: maxRes.amountA,
+    maxAmountB: maxRes.amountB,
+    minAmountB: minRes.amountB,
+    amountA: constant.amountA,
+    amountB: constant.amountB,
+  };
 }

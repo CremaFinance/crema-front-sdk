@@ -1,8 +1,9 @@
-import { expect } from "chai";
 import assert from "assert";
 import BN from "bn.js";
-import { DecimalExt } from "./decimalExt";
+import { expect } from "chai";
 import Decimal from "decimal.js";
+
+import { DecimalExt } from "./decimalExt";
 
 const MAX_64 = "9223372036854775807";
 const MIN_64 = "-9223372036854775808";
@@ -11,22 +12,7 @@ const MAX_U128 = "340282366920938463463374607431768211455";
 const MAX_128 = "170141183460469231731687303715884105727";
 const MIN_128 = "-170141183460469231731687303715884105728";
 const MIN_128_BUF = Buffer.from([
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  128,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128,
 ]);
 
 export class Numberu64 extends BN {
@@ -42,8 +28,8 @@ export class Numberu64 extends BN {
 export class Number128 extends BN {
   toBuffer(): Buffer {
     if (super.isNeg()) {
-      let buffer = super.add(new BN(1)).toBuffer("le", 16);
-      buffer.forEach(function(item, index, input) {
+      const buffer = super.add(new BN(1)).toBuffer("le", 16);
+      buffer.forEach(function (item, index, input) {
         input[index] = ~item & 0xff;
       });
       return buffer;
@@ -76,8 +62,8 @@ export class Numberu128 extends BN {
   }
 }
 
-describe("DecimalExt", function() {
-  it("from64Buffer", function() {
+describe("DecimalExt", function () {
+  it("from64Buffer", function () {
     expect(
       DecimalExt.from64Buffer(new BN("0").toBuffer("le", 8)).toString()
     ).to.equal("0");
@@ -127,7 +113,7 @@ describe("DecimalExt", function() {
       DecimalExt.from64Buffer(new BN(MIN_64).toBuffer("le", 8)).toString()
     ).to.equal(MIN_64);
   });
-  it("to64Buffer", function() {
+  it("to64Buffer", function () {
     expect(DecimalExt.to64Buffer(new Decimal("0")).toString()).to.equal(
       new BN("0").toBuffer("le", 8).toString()
     );
@@ -153,13 +139,13 @@ describe("DecimalExt", function() {
       new BN(MAX_64).toBuffer("le", 8).toString()
     );
 
-    let min64Buffer = Buffer.from([0, 0, 0, 0, 0, 0, 0, 128]);
+    const min64Buffer = Buffer.from([0, 0, 0, 0, 0, 0, 0, 128]);
     expect(DecimalExt.to64Buffer(new Decimal(MIN_64)).toString()).to.equal(
       min64Buffer.toString()
     );
   });
 
-  it("fromU64Buffer", function() {
+  it("fromU64Buffer", function () {
     expect(
       DecimalExt.fromU64Buffer(new Numberu64("0").toBuffer()).toString()
     ).to.equal("0");
@@ -229,7 +215,7 @@ describe("DecimalExt", function() {
     //expect(DecimalExt.fromU64Buffer(new Numberu128(MAX_U64).toBuffer()).toString()).to.be. ("Error: Invariant failed: Invalid buffer length: 16")
   });
 
-  it("toU64Buffer", function() {
+  it("toU64Buffer", function () {
     expect(DecimalExt.toU64Buffer(new Decimal("0")).toString()).to.equal(
       new Numberu64("0").toBuffer().toString()
     );
@@ -270,7 +256,7 @@ describe("DecimalExt", function() {
     ).to.equal(new Numberu64("10").toBuffer().toString());
   });
 
-  it("from128Buffer", function() {
+  it("from128Buffer", function () {
     expect(
       DecimalExt.from128Buffer(new Number128("0").toBuffer()).toString()
     ).to.equal("0");
@@ -460,7 +446,7 @@ describe("DecimalExt", function() {
     ).to.equal("-1234567898765432123456780000");
   });
 
-  it("to128Buffer", function() {
+  it("to128Buffer", function () {
     expect(DecimalExt.to128Buffer(new Decimal("0")).toString()).to.equal(
       new Number128("0").toBuffer().toString()
     );
@@ -563,7 +549,7 @@ describe("DecimalExt", function() {
     ).to.equal(new Number128("10").toBuffer().toString());
   });
 
-  it("fromU128Buffer", function() {
+  it("fromU128Buffer", function () {
     expect(
       DecimalExt.fromU128Buffer(new Number128("0").toBuffer()).toString()
     ).to.equal("0");
@@ -633,7 +619,7 @@ describe("DecimalExt", function() {
     ).to.equal(MAX_U128);
   });
 
-  it("toU128Buffer", function() {
+  it("toU128Buffer", function () {
     expect(DecimalExt.toU128Buffer(new Decimal("0")).toString()).to.equal(
       new Numberu128("0").toBuffer().toString()
     );

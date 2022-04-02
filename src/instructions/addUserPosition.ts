@@ -1,6 +1,8 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 import { struct, u8 } from "@solana/buffer-layout";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import type { PublicKey } from "@solana/web3.js";
+import { TransactionInstruction } from "@solana/web3.js";
+
 import { TokenSwapInstruction } from "./instruction";
 
 interface Data {
@@ -14,7 +16,7 @@ export const addUserPositionInstruction = (
   authority: PublicKey,
   positionsKey: PublicKey
 ): TransactionInstruction => {
-  let data = Buffer.alloc(DataLayout.span);
+  const data = Buffer.alloc(DataLayout.span);
   DataLayout.encode(
     {
       instruction: TokenSwapInstruction.AddUserPosition,

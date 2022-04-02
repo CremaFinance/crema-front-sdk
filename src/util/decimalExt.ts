@@ -1,7 +1,6 @@
-import "decimal.js";
 import BN from "bn.js";
-import invariant from "tiny-invariant";
 import Decimal from "decimal.js";
+import invariant from "tiny-invariant";
 
 Decimal.config({
   precision: 64,
@@ -27,7 +26,7 @@ export class DecimalExt {
    * @param precision The pricision
    * @returns The Decimal value, the result will be div 10^precision
    */
-  static from64Buffer(buffer: Buffer, precision: number = 0): Decimal {
+  static from64Buffer(buffer: Buffer, precision = 0): Decimal {
     invariant(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
     invariant(
       Math.abs(precision) < MAX_PRECISION,
@@ -35,11 +34,11 @@ export class DecimalExt {
     );
 
     if (buffer[7] >= 0x80) {
-      let ss = [];
-      for (let v of buffer) {
+      const ss = [];
+      for (const v of buffer) {
         ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
       }
-      let bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
+      const bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
       return new Decimal(bn.toString()).div(TEN.pow(precision));
     }
     return new Decimal(new BN(buffer, "le").toString()).div(TEN.pow(precision));
@@ -51,7 +50,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The Decimal value, the result will be div 10^precision
    */
-  static fromU64Buffer(buffer: Buffer, precision: number = 0): Decimal {
+  static fromU64Buffer(buffer: Buffer, precision = 0): Decimal {
     invariant(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
     invariant(
       Math.abs(precision) < MAX_PRECISION,
@@ -68,7 +67,7 @@ export class DecimalExt {
    * @param precision The pricision
    * @returns The Decimal value, the result will be div 10^precision
    */
-  static from128Buffer(buffer: Buffer, precision: number = 0): Decimal {
+  static from128Buffer(buffer: Buffer, precision = 0): Decimal {
     invariant(buffer.length === 16, `Invalid buffer length: ${buffer.length}`);
     invariant(
       Math.abs(precision) < MAX_PRECISION,
@@ -76,11 +75,11 @@ export class DecimalExt {
     );
 
     if (buffer[15] >= 0x80) {
-      let ss = [];
-      for (let v of buffer) {
+      const ss = [];
+      for (const v of buffer) {
         ss.push(`00${Math.abs(~v & 0xff).toString(16)}`.slice(-2));
       }
-      let bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
+      const bn = new BN(ss.join(""), 16, "le").add(new BN(1)).neg();
       return new Decimal(bn.toString()).div(TEN.pow(precision));
     }
     return new Decimal(new BN(buffer, "le").toString()).div(TEN.pow(precision));
@@ -92,7 +91,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The Decimal value, the result will be div 10^precision
    */
-  static fromU128Buffer(buffer: Buffer, precision: number = 0): Decimal {
+  static fromU128Buffer(buffer: Buffer, precision = 0): Decimal {
     invariant(buffer.length === 16, `Invalid buffer length: ${buffer.length}`);
     invariant(
       Math.abs(precision) < MAX_PRECISION,
@@ -107,7 +106,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The buffer, the result will be mul 10^precision
    */
-  static to64Buffer(v: Decimal, precision: number = 0): Buffer {
+  static to64Buffer(v: Decimal, precision = 0): Buffer {
     invariant(
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
@@ -117,10 +116,10 @@ export class DecimalExt {
       v.greaterThanOrEqualTo(MIN_INT64) && v.lessThanOrEqualTo(MAX_INT64),
       `Invalid v: ${v.toString()} to int128 buffer with precision: ${precision}`
     );
-    let bn = new BN(v.toString());
+    const bn = new BN(v.toString());
     if (bn.isNeg()) {
-      let buffer = bn.add(new BN(1)).toBuffer("le", 8);
-      buffer.forEach(function(item, index, input) {
+      const buffer = bn.add(new BN(1)).toBuffer("le", 8);
+      buffer.forEach(function (item, index, input) {
         input[index] = ~item & 0xff;
       });
       return buffer;
@@ -135,7 +134,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The buffer, the result will be mul 10^precision
    */
-  static toU64Buffer(v: Decimal, precision: number = 0): Buffer {
+  static toU64Buffer(v: Decimal, precision = 0): Buffer {
     invariant(
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
@@ -154,7 +153,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The buffer, the result will be mul 10^precision
    */
-  static to128Buffer(v: Decimal, precision: number = 0): Buffer {
+  static to128Buffer(v: Decimal, precision = 0): Buffer {
     invariant(
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`
@@ -164,10 +163,10 @@ export class DecimalExt {
       v.greaterThanOrEqualTo(MIN_INT128) && v.lessThanOrEqualTo(MAX_INT128),
       `Invalid v: ${v.toString()} to int128 buffer with precision: ${precision}`
     );
-    let bn = new BN(v.toString());
+    const bn = new BN(v.toString());
     if (bn.isNeg()) {
-      let buffer = bn.add(new BN(1)).toBuffer("le", 16);
-      buffer.forEach(function(item, index, input) {
+      const buffer = bn.add(new BN(1)).toBuffer("le", 16);
+      buffer.forEach(function (item, index, input) {
         input[index] = ~item & 0xff;
       });
       return buffer;
@@ -182,7 +181,7 @@ export class DecimalExt {
    * @param precision The precision
    * @returns The buffer, the result will be mul 10^precision
    */
-  static toU128Buffer(v: Decimal, precision: number = 0): Buffer {
+  static toU128Buffer(v: Decimal, precision = 0): Buffer {
     invariant(
       Math.abs(precision) < MAX_PRECISION,
       `Invalid precision: ${precision}`

@@ -1,9 +1,12 @@
-import { publicKey, decimalU128, Parser } from "../util/layout";
-import { struct, s32, u8, blob, seq } from "@solana/buffer-layout";
-import Decimal from "decimal.js";
-import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { blob, s32, seq, struct, u8 } from "@solana/buffer-layout";
+import type { AccountInfo, PublicKey } from "@solana/web3.js";
+import type Decimal from "decimal.js";
+
+import type { Parser } from "../util/layout";
+import { decimalU128, publicKey } from "../util/layout";
 
 export const POSITIONS_ACCOUNT_SIZE = 360000;
+export const POSITIONS_ACCOUNT_TYPE = 2;
 
 export interface Position {
   nftTokenId: PublicKey;
@@ -63,7 +66,7 @@ export const MAX_ACCOUNT_POSITION_LENGTH = Math.floor(
 );
 
 export const isPositionsAccount = (info: AccountInfo<Buffer>): boolean => {
-  return info.data.length === POSITIONS_ACCOUNT_SIZE;
+  return info.data.readUInt8(33) === POSITIONS_ACCOUNT_TYPE;
 };
 
 export const parsePositionsAccount: Parser<PositionsAccount> = (
@@ -73,13 +76,8 @@ export const parsePositionsAccount: Parser<PositionsAccount> = (
   if (!isPositionsAccount(info)) return;
 
   const buffer = Buffer.from(info.data);
-  const {
-    swapVersion,
-    tokenSwapKey,
-    accountType,
-    len,
-    dataFlat,
-  } = PositionsAccountLayout.decode(buffer);
+  const { swapVersion, tokenSwapKey, accountType, len, dataFlat } =
+    PositionsAccountLayout.decode(buffer);
 
   const positionSpan = len * PositionLayout.span;
   const positionsBuffer = dataFlat.slice(0, positionSpan);

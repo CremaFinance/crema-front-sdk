@@ -1,17 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import type { AccountInfo } from "@solana/spl-token";
 import {
-  u64,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
-  Token,
-  AccountInfo,
   AccountLayout,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  Token,
+  TOKEN_PROGRAM_ID,
+  u64,
 } from "@solana/spl-token";
-import {
-  PublicKey,
-  TransactionInstruction,
-  Connection,
+import type {
   AccountInfo as BaseAccountInfo,
+  Connection,
+  TransactionInstruction,
 } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import invariant from "tiny-invariant";
 
 /**
@@ -67,12 +69,13 @@ export async function getTokenAccount(
   conn: Connection,
   address: PublicKey
 ): Promise<AccountInfo> {
-  let account = await conn.getAccountInfo(address);
+  const account = await conn.getAccountInfo(address);
   invariant(
-    account?.data != null,
+    account?.data !== null,
     `The token account:${address.toBase58()} data is null`
   );
-  let accountInfo = parseTokenAccount(account);
+  invariant(account !== null, "the account is null");
+  const accountInfo = parseTokenAccount(account);
   accountInfo.address = address;
   return accountInfo;
 }
@@ -87,17 +90,17 @@ export async function getTokenAccounts(
   conn: Connection,
   owner: PublicKey
 ): Promise<AccountInfo[]> {
-  let accounts = await conn.getTokenAccountsByOwner(owner, {
+  const accounts = await conn.getTokenAccountsByOwner(owner, {
     programId: TOKEN_PROGRAM_ID,
   });
   const accountInfos: AccountInfo[] = [];
   for (let i = 0; i < accounts.value.length; i++) {
-    let { pubkey, account } = accounts.value[i];
+    const { pubkey, account } = accounts.value[i];
     invariant(
-      account?.data != null,
+      account?.data !== null,
       `The token account:${pubkey.toBase58()} data is null`
     );
-    let accountInfo = parseTokenAccount(account);
+    const accountInfo = parseTokenAccount(account);
     accountInfo.address = pubkey;
     accountInfos.push(accountInfo);
   }
@@ -105,7 +108,7 @@ export async function getTokenAccounts(
 }
 
 export function parseTokenAccountData(data: Buffer): AccountInfo {
-  let accountInfo = AccountLayout.decode(data);
+  const accountInfo = AccountLayout.decode(data);
   accountInfo.mint = new PublicKey(accountInfo.mint);
   accountInfo.owner = new PublicKey(accountInfo.owner);
   accountInfo.amount = u64.fromBuffer(accountInfo.amount);
@@ -141,8 +144,8 @@ export function parseTokenAccountData(data: Buffer): AccountInfo {
 export function parseTokenAccount(
   account: BaseAccountInfo<Buffer>
 ): AccountInfo {
-  invariant(account?.data != null, `The account data is null`);
-  let accountInfo = AccountLayout.decode(account?.data);
+  invariant(account?.data !== null, `The account data is null`);
+  const accountInfo = AccountLayout.decode(account?.data);
   accountInfo.mint = new PublicKey(accountInfo.mint);
   accountInfo.owner = new PublicKey(accountInfo.owner);
   accountInfo.amount = u64.fromBuffer(accountInfo.amount);

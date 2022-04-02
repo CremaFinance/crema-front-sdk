@@ -1,10 +1,10 @@
-import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
-import {
+import type {
   Connection,
-  Transaction,
   Signer,
+  Transaction,
   TransactionSignature,
 } from "@solana/web3.js";
+import { sendAndConfirmTransaction as realSendAndConfirmTransaction } from "@solana/web3.js";
 
 /**
  * Send and confirm trnasaction with default option
