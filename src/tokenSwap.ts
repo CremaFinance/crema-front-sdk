@@ -821,7 +821,7 @@ export class TokenSwap {
     invariant(this.isLoaded, "The token swap not load");
     invariant(
       this.currentTick <= tickUpper,
-      "The current price must less than lower price"
+      "when current price greater than upper price, can only add token b"
     );
     if (this.currentTick < tickLower) {
       return {
@@ -857,9 +857,9 @@ export class TokenSwap {
     invariant(this.isLoaded, "The token swap not load");
     invariant(
       this.currentTick >= tickLower,
-      "The current price must less than lower price"
+      "when current price less than lower price, can only add token a"
     );
-    if (this.currentTick < tickUpper) {
+    if (this.currentTick > tickUpper) {
       return {
         desiredAmountA: new Decimal(0),
         liquity: calculateLiquityOnlyB(tickLower, tickUpper, desiredAmountB),
@@ -909,27 +909,21 @@ export class TokenSwap {
     const lamportB =
       amountB !== null ? this.tokenBLamports(amountB).toDecimalPlaces(0) : null;
 
-    if (this.currentTick >= upperTick) {
-      invariant(
-        lamportB !== null && lamportB.greaterThan(0),
-        "when current price greater than upper price, can only add token b"
-      );
-      liquity = this.calculateLiquityByTokenB(
-        lowerTick,
-        upperTick,
-        lamportB
-      ).liquity;
-    } else {
-      invariant(
-        lamportA !== null && lamportA.greaterThan(0),
-        "when current price less than lower price, can only add token a"
-      );
+    if (lamportA !== null) {
       liquity = this.calculateLiquityByTokenA(
         lowerTick,
         upperTick,
         lamportA
       ).liquity;
+    } else {
+      invariant(lamportB !== null);
+      liquity = this.calculateLiquityByTokenB(
+        lowerTick,
+        upperTick,
+        lamportB
+      ).liquity;
     }
+
     const slidRes = calculateSlidTokenAmount(
       lowerTick,
       upperTick,
