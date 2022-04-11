@@ -17,11 +17,11 @@ export async function swapA2B({
 }) {
   const swap = await loadSwapPair(pairKey);
   const lamports = swap.tokenALamports(amount);
-  const outATA = await getATAAddress({
+  const fromATA = await getATAAddress({
     mint: swap.tokenSwapInfo.tokenAMint,
     owner: swap.provider.wallet.publicKey,
   });
-  const inATA = await getATAAddress({
+  const toATA = await getATAAddress({
     mint: swap.tokenSwapInfo.tokenBMint,
     owner: swap.provider.wallet.publicKey,
   });
@@ -29,8 +29,8 @@ export async function swapA2B({
   printObjectTable({
     outTokenMint: swap.tokenSwapInfo.tokenAMint,
     inTokenMint: swap.tokenSwapInfo.tokenBMint,
-    outATA,
-    inATA,
+    fromATA,
+    toATA,
     amountOut: swap.tokenBAmount(estimateResult.amountOut),
     slid: slid,
     minAmountOut: swap.tokenBAmount(
@@ -55,16 +55,11 @@ export async function swapA2B({
   });
   if (getConfirm.confirm) {
     const minIncome = estimateResult.amountOut.div(new Decimal(1).add(slid));
-    const res = await swap.swap(outATA, inATA, SWAP_A2B, lamports, minIncome);
+    const res = await swap.swap(fromATA, toATA, SWAP_A2B, lamports, minIncome);
     const receipt = await res.confirm();
-    //console.log(receipt.response.meta?.postBalances);
-    //console.log(receipt.response.meta?.preBalances);
-    //console.log(receipt.response.meta?.preTokenBalances);
-    //console.log(receipt.response.meta?.postTokenBalances);
     printObjectJSON({
       signature: receipt.signature.toString(),
       cmpuateUnits: receipt.computeUnits,
-      url: receipt.generateSolanaExplorerLink(),
     });
   }
 }
@@ -80,20 +75,20 @@ export async function swapB2A({
 }) {
   const swap = await loadSwapPair(pairKey);
   const lamports = swap.tokenBLamports(amount);
-  const spendATA = await getATAAddress({
-    mint: swap.tokenSwapInfo.swapTokenB,
+  const fromATA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenBMint,
     owner: swap.provider.wallet.publicKey,
   });
-  const incomeATA = await getATAAddress({
-    mint: swap.tokenSwapInfo.swapTokenA,
+  const toATA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenAMint,
     owner: swap.provider.wallet.publicKey,
   });
   const estimateResult = swap.preSwapB(lamports);
   printObjectTable({
-    spendTokenMint: swap.tokenSwapInfo.tokenBMint,
-    incomeTokenMint: swap.tokenSwapInfo.tokenAMint,
-    spendATA,
-    incomeATA,
+    outTokenMint: swap.tokenSwapInfo.tokenBMint,
+    inTokenMint: swap.tokenSwapInfo.tokenAMint,
+    toATA,
+    fromATA,
     amountOut: swap.tokenAAmount(estimateResult.amountOut),
     slid: slid,
     minAmountOut: swap.tokenAAmount(
@@ -118,13 +113,7 @@ export async function swapB2A({
   });
   if (getConfirm.confirm) {
     const minIncome = estimateResult.amountOut.div(new Decimal(1).add(slid));
-    const res = await swap.swap(
-      spendATA,
-      incomeATA,
-      SWAP_B2A,
-      lamports,
-      minIncome
-    );
+    const res = await swap.swap(fromATA, toATA, SWAP_B2A, lamports, minIncome);
     const receipt = await res.confirm();
     printObjectJSON({
       signature: receipt.signature.toString(),
