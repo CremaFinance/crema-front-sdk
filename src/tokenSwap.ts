@@ -719,7 +719,7 @@ export class TokenSwap {
         this.tokenSwapKey,
         this.authority,
         this.provider.wallet.publicKey,
-        this.tokenSwapInfo.swapTokenB,
+        this.tokenSwapInfo.swapTokenA,
         this.tokenSwapInfo.swapTokenB,
         userTokenA,
         userTokenB,
