@@ -264,7 +264,7 @@ export class TokenSwap {
         {
           memcmp: {
             offset: 33,
-            bytes: bs58.encode(new BN(0).toBuffer("le", 1)),
+            bytes: bs58.encode(new BN(0).toArrayLike(Buffer, "le", 1)),
           },
         },
         {
