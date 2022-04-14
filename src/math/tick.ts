@@ -418,10 +418,7 @@ export function tick2UiPrice(
   baseDecimals: number,
   quoteDecimals: number
 ): Decimal {
-  const multiple = new Decimal(10)
-    .pow(quoteDecimals)
-    .div(new Decimal(10).pow(baseDecimals));
-  return tick2Price(tick).mul(multiple);
+  return lamportPrice2uiPrice(tick2Price(tick), baseDecimals, quoteDecimals);
 }
 
 /*
@@ -436,10 +433,7 @@ export function uiPrice2Tick(
   baseDecimals: number,
   quoteDecimals: number
 ): number {
-  const multiple = new Decimal(10)
-    .pow(baseDecimals)
-    .div(new Decimal(10).pow(quoteDecimals));
-  return price2Tick(price.mul(multiple));
+  return price2Tick(uiPrice2LamportPrice(price, baseDecimals, quoteDecimals));
 }
 
 /*
@@ -454,9 +448,7 @@ export function lamportPrice2uiPrice(
   baseDecimals: number,
   quoteDecimals: number
 ): Decimal {
-  const multiple = new Decimal(10)
-    .pow(baseDecimals)
-    .div(new Decimal(10).pow(quoteDecimals));
+  const multiple = new Decimal(10).pow(baseDecimals - quoteDecimals);
   return price.mul(multiple);
 }
 
@@ -472,8 +464,6 @@ export function uiPrice2LamportPrice(
   baseDecimals: number,
   quoteDecimals: number
 ): Decimal {
-  const multiple = new Decimal(10)
-    .pow(quoteDecimals)
-    .div(new Decimal(10).pow(baseDecimals));
+  const multiple = new Decimal(10).pow(quoteDecimals - baseDecimals);
   return price.mul(multiple);
 }
