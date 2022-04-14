@@ -1,12 +1,16 @@
-import { decimalU128, decimalU64, Parser, publicKey } from "../util/layout";
-import { u8, u32, struct } from "@solana/buffer-layout";
-import { AccountInfo, PublicKey } from "@solana/web3.js";
-import Decimal from "decimal.js";
+import { struct, u8, u32 } from "@solana/buffer-layout";
+import type { AccountInfo, PublicKey } from "@solana/web3.js";
+import type Decimal from "decimal.js";
+
+import type { Parser } from "../util/layout";
+import { decimalU64, decimalU128, publicKey } from "../util/layout";
+
+export const TOKEN_SWAP_ACCOUNT_TYPE = 0;
 
 export interface TokenSwapAccount {
+  version: number;
   tokenSwapKey: PublicKey;
   accountType: number;
-  version: number;
   isInitialized: number;
   nonce: number;
   tokenProgramId: PublicKey;
@@ -33,9 +37,9 @@ export interface TokenSwapAccount {
 
 export const TokenSwapAccountLayout = struct<TokenSwapAccount>(
   [
+    u8("version"),
     publicKey("tokenSwapKey"),
     u8("accountType"),
-    u8("version"),
     u8("isInitialized"),
     u8("nonce"),
     publicKey("tokenProgramId"),
@@ -65,7 +69,7 @@ export const TokenSwapAccountLayout = struct<TokenSwapAccount>(
 export const TOKEN_SWAP_ACCOUNT_SIZE = TokenSwapAccountLayout.span;
 
 export const isTokenSwapAccount = (info: AccountInfo<Buffer>): boolean => {
-  return info.data.length === TOKEN_SWAP_ACCOUNT_SIZE;
+  return info.data.readUInt8(33) === TOKEN_SWAP_ACCOUNT_TYPE;
 };
 
 export const parseTokenSwapAccount: Parser<TokenSwapAccount> = (

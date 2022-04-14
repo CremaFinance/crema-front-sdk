@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import invariant from "tiny-invariant";
-import { Tick } from "../state";
+
+import type { Tick } from "../state";
 
 // The max ticker
 export const MAX_TICK = 443632;
@@ -13,31 +14,31 @@ export const MIN_TICK = -MAX_TICK;
 // price = pow(PIECES, TICK)
 export const PIECES = new Decimal("1.0001");
 export const PRICE_OFFSET = new Decimal("1e-12");
-export const MAX_PRICE = PIECES.pow(MAX_TICK);
-export const MIN_PRICE = PIECES.pow(MIN_TICK);
-export const MAX_SQRT_PRICE = PIECES.pow(MAX_TICK / 2);
-export const MIN_SQRT_PRICE = PIECES.pow(MIN_TICK / 2);
+export const MAX_PRICE = PIECES.pow(MAX_TICK).add(PRICE_OFFSET);
+export const MIN_PRICE = PIECES.pow(MIN_TICK).add(PRICE_OFFSET);
+export const MAX_SQRT_PRICE = PIECES.pow(MAX_TICK / 2)
+  .add(PRICE_OFFSET)
+  .toDP(12);
+export const MIN_SQRT_PRICE = PIECES.pow(MIN_TICK / 2)
+  .sub(PRICE_OFFSET)
+  .toDP(12);
 
 /**
  * Get the tick by sqrt price
  *
  * @param sqrtPrice the sqrt price
- * @return the tick
+  let afterSqrtPrice = liquity.div(amountIn.add(liquity.div(upperSqrtPrice)));
  */
 export function sqrtPrice2Tick(sqrtPrice: Decimal): number {
   invariant(
-    sqrtPrice.lessThan(MAX_SQRT_PRICE),
-    `Invalid sqrtPrice: ${sqrtPrice.toString()} Max: ${MAX_SQRT_PRICE}, too large`
+    sqrtPrice.lessThanOrEqualTo(MAX_SQRT_PRICE),
+    `Invalid sqrtPrice: ${sqrtPrice.toString()} Max: ${MAX_SQRT_PRICE.toString()}, too large`
   );
   invariant(
-    sqrtPrice.greaterThan(MIN_SQRT_PRICE),
-    `Invalid sqrtPrice: ${sqrtPrice.toString()}, Min: ${MIN_SQRT_PRICE}, too small`
+    sqrtPrice.greaterThanOrEqualTo(MIN_SQRT_PRICE),
+    `Invalid sqrtPrice: ${sqrtPrice.toString()}, Min: ${MIN_SQRT_PRICE.toString()}, too small`
   );
-  return sqrtPrice
-    .pow(2)
-    .log(PIECES)
-    .toDP(0, Decimal.ROUND_HALF_UP)
-    .toNumber();
+  return sqrtPrice.pow(2).log(PIECES).toDP(0, Decimal.ROUND_HALF_UP).toNumber();
 }
 
 /**
@@ -61,16 +62,13 @@ export function tick2SqrtPrice(tick: number): Decimal {
 export function price2Tick(price: Decimal): number {
   invariant(
     price.lessThan(MAX_PRICE),
-    `Invalid price:${price.toString()} Max: ${MAX_PRICE},  too large`
+    `Invalid price:${price.toString()} Max: ${MAX_PRICE.toString()},  too large`
   );
   invariant(
     price.greaterThan(MIN_PRICE),
-    `Invalid price:${price.toString()} Min: ${MIN_PRICE}, too small`
+    `Invalid price:${price.toString()} Min: ${MIN_PRICE.toString()}, too small`
   );
-  return price
-    .log(PIECES)
-    .toDP(0, Decimal.ROUND_HALF_UP)
-    .toNumber();
+  return price.log(PIECES).toDP(0, Decimal.ROUND_HALF_UP).toNumber();
 }
 
 /**
@@ -81,7 +79,7 @@ export function price2Tick(price: Decimal): number {
 export function tick2Price(tick: number): Decimal {
   invariant(
     tick >= MIN_TICK && tick <= MAX_TICK,
-    `Invalid tick: ${tick}, must be in range [${MIN_TICK}, ${MAX_TICK}]`
+    `Invalid tick: ${tick}, must be in range [${MIN_TICK.toString()}, ${MAX_TICK.toString()}]`
   );
   return PIECES.pow(tick);
 }
@@ -91,13 +89,11 @@ export function tick2Price(tick: number): Decimal {
  * @deprecated please use {@link getNearestTickBySqrtPrice Or getNearestTickByPrice} instead
  * @param sqrtPrice the sqrt price
  * @param tickSpace the tick space
- * @param isLower is the tick is lowwer
  * @returns the tick or null
  */
 export function getNearestTick(
   sqrtPrice: Decimal,
-  tickSpace: number,
-  isLower: boolean
+  tickSpace: number
 ): number | null {
   return getNearestTickBySqrtPrice(sqrtPrice, tickSpace);
 }
@@ -118,14 +114,14 @@ export function getNearestTickBySqrtPrice(
   );
   invariant(
     sqrtPrice.lessThan(MAX_SQRT_PRICE),
-    `Invalid sqrtPrice: ${sqrtPrice.toString()} Max: ${MAX_SQRT_PRICE}, too large`
+    `Invalid sqrtPrice: ${sqrtPrice.toString()} Max: ${MAX_SQRT_PRICE.toString()}, too large`
   );
   invariant(
     sqrtPrice.greaterThan(MIN_SQRT_PRICE),
-    `Invalid sqrtPrice: ${sqrtPrice.toString()}, Min: ${MIN_SQRT_PRICE}, too small`
+    `Invalid sqrtPrice: ${sqrtPrice.toString()}, Min: ${MIN_SQRT_PRICE.toString()}, too small`
   );
-  let t = sqrtPrice2Tick(sqrtPrice);
-  let m = (t - MIN_TICK) % tickSpace;
+  const t = sqrtPrice2Tick(sqrtPrice);
+  const m = (t - MIN_TICK) % tickSpace;
   if (m > tickSpace / 2) {
     return t - m + tickSpace;
   }
@@ -148,14 +144,14 @@ export function getNearestTickByPrice(
   );
   invariant(
     price.lessThan(MAX_PRICE),
-    `Invalid price:${price.toString()} Max: ${MAX_PRICE},  too large`
+    `Invalid price:${price.toString()} Max: ${MAX_PRICE.toString()},  too large`
   );
   invariant(
     price.greaterThan(MIN_PRICE),
-    `Invalid price:${price.toString()} Min: ${MIN_PRICE}, too small`
+    `Invalid price:${price.toString()} Min: ${MIN_PRICE.toString()}, too small`
   );
-  let t = price2Tick(price);
-  let m = (t - MIN_TICK) % tickSpace;
+  const t = price2Tick(price);
+  const m = (t - MIN_TICK) % tickSpace;
   if (m > tickSpace / 2) {
     return t - m + tickSpace;
   }
@@ -191,6 +187,7 @@ export function calculateSwapA2B(
   );
   invariant(ticks.length > 0, "the ticks is empty");
   //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  invariant(ticks[0] !== undefined);
   invariant(currentSqrtPrice > ticks[0].tickPrice, "out of ticks");
   let liquity = currentLiquity;
   let out = new Decimal(0);
@@ -199,19 +196,21 @@ export function calculateSwapA2B(
   let feeUsed = new Decimal(0);
   let amountUsed = new Decimal(0);
   for (let i = ticks.length - 1; i >= 0; i--) {
+    const ticksI = ticks[i];
+    invariant(ticksI !== undefined);
     if (liquity.equals(new Decimal(0))) {
-      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
-      liquity = liquity.sub(ticks[i].liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.sub(PRICE_OFFSET);
+      liquity = liquity.sub(ticksI.liquityNet);
       //upperSqrtPrice = ticks[i].tickPrice;
       continue;
     }
-    if (currentSqrtPrice < ticks[i].tickPrice) {
+    if (currentSqrtPrice < ticksI.tickPrice) {
       continue;
     }
-    let upperSqrtPrice = currentSqrtPrice;
-    let lowerSqrtPrice = ticks[i].tickPrice;
-    let maxAmountIn = maxAmountA(lowerSqrtPrice, currentSqrtPrice, liquity);
-    let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
+    const upperSqrtPrice = currentSqrtPrice;
+    const lowerSqrtPrice = ticksI.tickPrice;
+    const maxAmountIn = maxAmountA(lowerSqrtPrice, currentSqrtPrice, liquity);
+    const fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
       remindWithFee = remind;
     } else {
@@ -222,7 +221,7 @@ export function calculateSwapA2B(
       remindWithFee = remind
         .mul(new Decimal(1).sub(fee))
         .toDP(0, Decimal.ROUND_UP);
-      let { amountOut, afterSqrtPrice } = swapA2B(
+      const { amountOut, afterSqrtPrice } = swapA2B(
         upperSqrtPrice,
         liquity,
         remindWithFee
@@ -241,8 +240,8 @@ export function calculateSwapA2B(
       amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee);
       feeUsed = feeUsed.add(fullStepFee);
       out = out.add(maxAmountB(lowerSqrtPrice, upperSqrtPrice, liquity));
-      liquity = liquity.sub(ticks[i].liquityNet);
-      currentSqrtPrice = ticks[i].tickPrice.sub(PRICE_OFFSET);
+      liquity = liquity.sub(ticksI.liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.sub(PRICE_OFFSET);
       //upperSqrtPrice = ticks[i].tickPrice;
     }
   }
@@ -284,8 +283,9 @@ export function calculateSwapB2A(
   );
   invariant(ticks.length > 0, "the ticks is empty");
   //let currentTick = sqrtPrice2Tick(currentSqrtPrice);
+  const lastTick = ticks[ticks.length - 1];
   invariant(
-    currentSqrtPrice.lessThan(ticks[ticks.length - 1].tickPrice),
+    lastTick !== undefined && currentSqrtPrice.lessThan(lastTick.tickPrice),
     "out of ticks"
   );
   let liquity = currentLiquity;
@@ -295,17 +295,19 @@ export function calculateSwapB2A(
   let amountUsed = new Decimal(0);
   let feeUsed = new Decimal(0);
   for (let i = 0; i < ticks.length; i++) {
+    const ticksI = ticks[i];
+    invariant(ticksI !== undefined);
     if (liquity.equals(new Decimal(0))) {
-      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
-      liquity = liquity.add(ticks[i].liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.add(PRICE_OFFSET);
+      liquity = liquity.add(ticksI.liquityNet);
       continue;
     }
-    if (currentSqrtPrice > ticks[i].tickPrice) {
+    if (currentSqrtPrice > ticksI.tickPrice) {
       continue;
     }
-    let upperSqrtPrice = ticks[i].tickPrice;
-    let maxAmountIn = maxAmountB(currentSqrtPrice, upperSqrtPrice, liquity);
-    let fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
+    const upperSqrtPrice = ticksI.tickPrice;
+    const maxAmountIn = maxAmountB(currentSqrtPrice, upperSqrtPrice, liquity);
+    const fullStepFee = maxAmountIn.mul(fee).toDP(0, Decimal.ROUND_DOWN);
     if (remind.lessThan(fullStepFee)) {
       remindWithFee = remind;
     } else {
@@ -315,7 +317,7 @@ export function calculateSwapB2A(
       remindWithFee = remind
         .mul(new Decimal(1).sub(fee))
         .toDP(0, Decimal.ROUND_UP);
-      let { amountOut, afterSqrtPrice } = swapB2A(
+      const { amountOut, afterSqrtPrice } = swapB2A(
         currentSqrtPrice,
         liquity,
         remindWithFee
@@ -334,8 +336,8 @@ export function calculateSwapB2A(
       amountUsed = amountUsed.add(maxAmountIn).add(fullStepFee);
       feeUsed = feeUsed.add(fullStepFee);
       out = out.add(maxAmountA(currentSqrtPrice, upperSqrtPrice, liquity));
-      liquity = liquity.add(ticks[i].liquityNet);
-      currentSqrtPrice = ticks[i].tickPrice.add(PRICE_OFFSET);
+      liquity = liquity.add(ticksI.liquityNet);
+      currentSqrtPrice = ticksI.tickPrice.add(PRICE_OFFSET);
     }
   }
   return {
@@ -376,19 +378,14 @@ export function swapA2B(
   liquity: Decimal,
   amountIn: Decimal
 ): { amountOut: Decimal; afterSqrtPrice: Decimal } {
-  let afterSqrtPrice = liquity.div(amountIn.add(liquity.div(upperSqrtPrice)));
-  let delta_increase = amountIn.add(
+  const afterSqrtPrice = liquity.div(amountIn.add(liquity.div(upperSqrtPrice)));
+  const delta_increase = amountIn.add(
     liquity.div(upperSqrtPrice).toDP(0, Decimal.ROUND_DOWN)
   );
-  let out = liquity
+  const out = liquity
     .mul(upperSqrtPrice)
     .toDP(0, Decimal.ROUND_DOWN)
-    .sub(
-      liquity
-        .mul(liquity)
-        .div(delta_increase)
-        .toDP(0, Decimal.ROUND_DOWN)
-    );
+    .sub(liquity.mul(liquity).div(delta_increase).toDP(0, Decimal.ROUND_DOWN));
   return { amountOut: out, afterSqrtPrice };
 }
 
@@ -398,18 +395,85 @@ export function swapB2A(
   liquity: Decimal,
   amountIn: Decimal
 ): { amountOut: Decimal; afterSqrtPrice: Decimal } {
-  let afterSqrtPrice = amountIn.div(liquity).add(lowerSqrtPrice);
-  let delta_increase = amountIn.add(
+  const afterSqrtPrice = amountIn.div(liquity).add(lowerSqrtPrice);
+  const delta_increase = amountIn.add(
     liquity.mul(lowerSqrtPrice).toDP(0, Decimal.ROUND_DOWN)
   );
-  let out = liquity
+  const out = liquity
     .div(lowerSqrtPrice)
     .toDP(0, Decimal.ROUND_DOWN)
-    .sub(
-      liquity
-        .mul(liquity)
-        .div(delta_increase)
-        .toDP(0, Decimal.ROUND_DOWN)
-    );
+    .sub(liquity.mul(liquity).div(delta_increase).toDP(0, Decimal.ROUND_DOWN));
   return { amountOut: out, afterSqrtPrice };
+}
+
+/*
+ * Convert the tick to ui price.
+ * @param tick the tick.
+ * @param baseDecimals the base token decimals.
+ * @param quoteDecimals the quote token decimals
+ * @return The ui price
+ */
+export function tick2UiPrice(
+  tick: number,
+  baseDecimals: number,
+  quoteDecimals: number
+): Decimal {
+  const multiple = new Decimal(10)
+    .pow(quoteDecimals)
+    .div(new Decimal(10).pow(baseDecimals));
+  return tick2Price(tick).mul(multiple);
+}
+
+/*
+ * Convert the ui price to tick.
+ * @param price the ui price.
+ * @param baseDecimals the base token decimals.
+ * @param quoteDecimals the quote token decimals
+ * @return The tick
+ */
+export function uiPrice2Tick(
+  price: Decimal,
+  baseDecimals: number,
+  quoteDecimals: number
+): number {
+  const multiple = new Decimal(10)
+    .pow(baseDecimals)
+    .div(new Decimal(10).pow(quoteDecimals));
+  return price2Tick(price.mul(multiple));
+}
+
+/*
+ * Convert the lamport price(with decimals) to ui price
+ * @param price the lamport price
+ * @param baseDecimals the base token decimals.
+ * @param quoteDecimals the quote token decimals
+ * @return The ui price
+ */
+export function lamportPrice2uiPrice(
+  price: Decimal,
+  baseDecimals: number,
+  quoteDecimals: number
+): Decimal {
+  const multiple = new Decimal(10)
+    .pow(baseDecimals)
+    .div(new Decimal(10).pow(quoteDecimals));
+  return price.mul(multiple);
+}
+
+/*
+ * Convert the ui price to lamport price
+ * @param price the lamport price
+ * @param baseDecimals the base token decimals.
+ * @param quoteDecimals the quote token decimals
+ * @return The lamport price
+ */
+export function uiPrice2LamportPrice(
+  price: Decimal,
+  baseDecimals: number,
+  quoteDecimals: number
+): Decimal {
+  const multiple = new Decimal(10)
+    .pow(quoteDecimals)
+    .div(new Decimal(10).pow(baseDecimals));
+  return price.mul(multiple);
 }

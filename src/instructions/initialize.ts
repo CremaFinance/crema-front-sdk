@@ -1,8 +1,10 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 import { struct, u8, u32 } from "@solana/buffer-layout";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import type { PublicKey } from "@solana/web3.js";
+import { TransactionInstruction } from "@solana/web3.js";
 import Decimal from "decimal.js";
-import { decimalU128, decimalU64 } from "../util/layout";
+
+import { decimalU64, decimalU128 } from "../util/layout";
 import { TokenSwapInstruction } from "./instruction";
 
 interface Data {
@@ -53,7 +55,7 @@ export const initializeInstruction = (
   tickSpace: number,
   currentSqrtPrice: Decimal
 ): TransactionInstruction => {
-  let data = Buffer.alloc(DataLayout.span);
+  const data = Buffer.alloc(DataLayout.span);
   DataLayout.encode(
     {
       instruction: TokenSwapInstruction.Initialize,
