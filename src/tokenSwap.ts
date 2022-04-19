@@ -878,7 +878,7 @@ export class TokenSwap {
    * @param minimumAmountOut The minimum amount out
    * @returns
    */
-  async swapAotmic(
+  async swapAtomic(
     direct: number,
     amountIn: Decimal,
     minimumAmountOut: Decimal

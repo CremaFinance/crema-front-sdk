@@ -55,7 +55,7 @@ export async function swapA2B({
   });
   if (getConfirm.confirm) {
     const minIncome = estimateResult.amountOut.div(new Decimal(1).add(slid));
-    const res = await swap.swapAotmic(SWAP_A2B, lamports, minIncome);
+    const res = await swap.swapAtomic(SWAP_A2B, lamports, minIncome);
     const receipt = await res.confirm();
     printObjectJSON({
       signature: receipt.signature.toString(),
