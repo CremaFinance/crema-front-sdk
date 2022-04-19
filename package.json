@@ -1,6 +1,6 @@
 {
   "name": "@cremafinance/swap-sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "The front sdk for crema swap",
   "license": "MIT",
   "scripts": {
