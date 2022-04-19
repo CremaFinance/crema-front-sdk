@@ -119,13 +119,13 @@ export class DecimalExt {
     );
     const bn = new BN(v.toString());
     if (bn.isNeg()) {
-      const buffer = bn.add(new BN(1)).toBuffer("le", 8);
+      const buffer = bn.add(new BN(1)).toArrayLike(Buffer, "le", 8);
       buffer.forEach(function (item, index, input) {
         input[index] = ~item & 0xff;
       });
       return buffer;
     } else {
-      return bn.toBuffer("le", 8);
+      return bn.toArrayLike(Buffer, "le", 8);
     }
   }
 
@@ -145,7 +145,7 @@ export class DecimalExt {
       v.greaterThanOrEqualTo(0) && v.lessThanOrEqualTo(MAX_UINT64),
       `Invalid v: ${v.toString()} to uint64 buffer with precision: ${precision}`
     );
-    return new BN(v.toString()).toBuffer("le", 8);
+    return new BN(v.toString()).toArrayLike(Buffer, "le", 8);
   }
 
   /**
@@ -166,13 +166,13 @@ export class DecimalExt {
     );
     const bn = new BN(v.toString());
     if (bn.isNeg()) {
-      const buffer = bn.add(new BN(1)).toBuffer("le", 16);
+      const buffer = bn.add(new BN(1)).toArrayLike(Buffer, "le", 16);
       buffer.forEach(function (item, index, input) {
         input[index] = ~item & 0xff;
       });
       return buffer;
     } else {
-      return bn.toBuffer("le", 16);
+      return bn.toArrayLike(Buffer, "le", 16);
     }
   }
 
@@ -192,6 +192,6 @@ export class DecimalExt {
       v.greaterThanOrEqualTo(0) && v.lessThanOrEqualTo(MAX_UINT128),
       `Invalid v: ${v.toString()} to int128 buffer with precision: ${precision}`
     );
-    return new BN(v.toString()).toBuffer("le", 16);
+    return new BN(v.toString()).toArrayLike(Buffer, "le", 16);
   }
 }
