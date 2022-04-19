@@ -9,4 +9,5 @@ export enum TokenSwapInstruction {
   AddUserPosition = 6,
   UpdateFee = 7,
   SimulateSwap = 8,
+  DepositFixToken = 9,
 }

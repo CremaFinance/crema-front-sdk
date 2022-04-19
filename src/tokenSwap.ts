@@ -4,6 +4,7 @@ import {
   createATAInstruction,
   createMintInstructions,
   getATAAddress,
+  getOrCreateATA,
   getTokenAccount,
 } from "@saberhq/token-utils";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -27,6 +28,7 @@ import {
   swapInstruction,
   withdrawAllTokenTypesInstruction,
 } from "./instructions";
+import { depositFixTokenInstruction } from "./instructions/depositFixToken";
 import {
   calculateLiquity,
   calculateLiquityOnlyA,
@@ -38,6 +40,7 @@ import {
   getNearestTickByPrice,
   lamportPrice2uiPrice,
   sqrtPrice2Tick,
+  tick2SqrtPrice,
   tick2UiPrice,
   uiPrice2LamportPrice,
   uiPrice2Tick,
@@ -59,6 +62,8 @@ import { getTokenAccounts } from "./util/token";
 export const INIT_KEY = new PublicKey("11111111111111111111111111111111");
 export const SWAP_B2A = 1;
 export const SWAP_A2B = 0;
+export const FIX_TOKEN_A = 0;
+export const FIX_TOKEN_B = 1;
 
 export interface PositionInfo {
   positionsKey: PublicKey;
@@ -522,6 +527,96 @@ export class TokenSwap {
   }
 
   /**
+   * Mint a position and you can specified a fix token amount.
+   * @param userTokenA The user address of token A
+   * @param userTokenB The user address of token B
+   * @param fixTokenType 0-FixTokenA 1-FixTokenB
+   * @param lowerTick The lower tick
+   * @param upperTick The upper tick
+   * @param maximumAmountA The maximum amount of Token A
+   * @param maximumAmountB The maximum amount of Token B
+   * @returns
+   */
+  async mintPositionFixToken(
+    userTokenA: PublicKey,
+    userTokenB: PublicKey,
+    fixTokenType: number,
+    lowerTick: number,
+    upperTick: number,
+    maximumAmountA: Decimal,
+    maximumAmountB: Decimal
+  ): Promise<PendingMintPosition> {
+    if (this.isLoaded) {
+      await this.load();
+    }
+    invariant(
+      lowerTick < upperTick,
+      "The lowerTick must be less than upperTick"
+    );
+
+    const instructions: TransactionInstruction[] = [];
+
+    // Generate create position nft token instructions
+    const positionNftMint = Keypair.generate();
+    const positionAccount = await getATAAddress({
+      mint: positionNftMint.publicKey,
+      owner: this.provider.wallet.publicKey,
+    });
+
+    const nftMintInstructions = await createMintInstructions(
+      this.provider,
+      this.authority,
+      positionNftMint.publicKey,
+      0
+    );
+    instructions.push(...nftMintInstructions);
+    instructions.push(
+      createATAInstruction({
+        address: positionAccount,
+        mint: positionNftMint.publicKey,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      })
+    );
+
+    const positionsKey = this.choosePosition();
+    invariant(positionsKey !== null, "The position account space if full");
+    // Generate mint positon instruction
+    instructions.push(
+      depositFixTokenInstruction(
+        this.programId,
+        this.tokenSwapKey,
+        this.authority,
+        this.provider.wallet.publicKey,
+        userTokenA,
+        userTokenB,
+        this.tokenSwapInfo.swapTokenA,
+        this.tokenSwapInfo.swapTokenB,
+        positionNftMint.publicKey,
+        positionAccount,
+        this.tokenSwapInfo.ticksKey,
+        positionsKey,
+        0,
+        fixTokenType,
+        lowerTick,
+        upperTick,
+        maximumAmountA,
+        maximumAmountB,
+        new Decimal(0)
+      )
+    );
+
+    return {
+      positionId: positionNftMint.publicKey,
+      positionAccount,
+      positionsKey,
+      tx: new TransactionEnvelope(this.provider, instructions, [
+        positionNftMint,
+      ]),
+    };
+  }
+
+  /**
    * Increase liquity on a exist position
    * @param positionId The position id (nft mint address)
    * @param userTokenA The user address of token A
@@ -566,6 +661,58 @@ export class TokenSwap {
         position.positionInfo.lowerTick,
         position.positionInfo.upperTick,
         liquity,
+        maximumAmountA,
+        maximumAmountB,
+        position.positionInfo.index
+      ),
+    ]);
+  }
+
+  /**
+   * Increase liquity on a exist position and you can specified a fix token amount.
+   * @param positionId The position id (nft mint address)
+   * @param userTokenA The user address of token A
+   * @param userTokenB The user address of token B
+   * @param fixTokenType The liquity amount
+   * @param maximumAmountA The maximum of token A
+   * @param maximumAmountB The maximum of token B
+   * @returns
+   */
+  async increaseLiquityFixToken(
+    positionId: PublicKey,
+    userTokenA: PublicKey,
+    userTokenB: PublicKey,
+    fixTokenType: number,
+    maximumAmountA: Decimal,
+    maximumAmountB: Decimal,
+    positionAccount: PublicKey | null = null
+  ): Promise<TransactionEnvelope> {
+    if (!this.isLoaded) {
+      await this.load();
+    }
+    const position = await this._checkUserPositionAccount(
+      positionId,
+      positionAccount
+    );
+
+    return new TransactionEnvelope(this.provider, [
+      depositFixTokenInstruction(
+        this.programId,
+        this.tokenSwapKey,
+        this.authority,
+        this.provider.wallet.publicKey,
+        userTokenA,
+        userTokenB,
+        this.tokenSwapInfo.swapTokenA,
+        this.tokenSwapInfo.swapTokenB,
+        positionId,
+        position.positionAccount,
+        this.tokenSwapInfo.ticksKey,
+        position.positionInfo.positionsKey,
+        1,
+        fixTokenType,
+        position.positionInfo.lowerTick,
+        position.positionInfo.upperTick,
         maximumAmountA,
         maximumAmountB,
         position.positionInfo.index
@@ -625,6 +772,59 @@ export class TokenSwap {
   }
 
   /**
+   * Decrease liquity, after decrease if liquity amount is zero the position will be remove,
+   * if user ATA not exist, it will be create.
+   * @param positionId The position id (nft mint address)
+   * @param liquity The liquity amount
+   * @param minimumAmountA The minimum amount of token A want recv
+   * @param minimumAmountB The minimum amount of token b want recv
+   * @returns
+   */
+  async decreaseLiquityAtomic(
+    positionId: PublicKey,
+    liquity: Decimal,
+    minimumAmountA: Decimal,
+    minimumAmountB: Decimal,
+    positionAccount: PublicKey | null = null
+  ): Promise<TransactionEnvelope> {
+    const { address: tokenAATA, instruction: tokenAATAInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: this.tokenSwapInfo.tokenAMint,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    const { address: tokenBATA, instruction: tokenBATAInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: this.tokenSwapInfo.tokenBMint,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    const instructions: TransactionInstruction[] = [];
+    if (tokenAATAInstruction !== null) {
+      instructions.push(tokenAATAInstruction);
+    }
+    if (tokenBATAInstruction !== null) {
+      instructions.push(tokenBATAInstruction);
+    }
+
+    const tx = await this.decreaseLiquity(
+      positionId,
+      tokenAATA,
+      tokenBATA,
+      liquity,
+      minimumAmountA,
+      minimumAmountB,
+      positionAccount
+    );
+
+    tx.instructions.unshift(...instructions);
+
+    return tx;
+  }
+
+  /**
    *
    * @param userSource The token that user want swap out
    * @param userDestination The token that user want swap in
@@ -669,6 +869,57 @@ export class TokenSwap {
         minimumAmountOut
       ),
     ]);
+  }
+
+  /**
+   * Token swap, if the dst ATA not exist it will create it.
+   * @param direct 0-A swap B, 1-B swap A
+   * @param amountIn The amount in
+   * @param minimumAmountOut The minimum amount out
+   * @returns
+   */
+  async swapAotmic(
+    direct: number,
+    amountIn: Decimal,
+    minimumAmountOut: Decimal
+  ): Promise<TransactionEnvelope> {
+    const { srcMint, dstMint } =
+      direct === SWAP_A2B
+        ? {
+            srcMint: this.tokenSwapInfo.tokenAMint,
+            dstMint: this.tokenSwapInfo.tokenBMint,
+          }
+        : {
+            srcMint: this.tokenSwapInfo.tokenBMint,
+            dstMint: this.tokenSwapInfo.tokenAMint,
+          };
+    const { address: dstATA, instruction: dstATAInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: dstMint,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    const instructions: TransactionInstruction[] = [];
+    if (dstATAInstruction !== null) {
+      instructions.push(dstATAInstruction);
+    }
+    const srcATA = await getATAAddress({
+      mint: srcMint,
+      owner: this.provider.wallet.publicKey,
+    });
+
+    const swapTx = await this.swap(
+      srcATA,
+      dstATA,
+      direct,
+      amountIn,
+      minimumAmountOut
+    );
+
+    swapTx.instructions.unshift(...instructions);
+
+    return swapTx;
   }
 
   async simulateSwap(amountIn: Decimal, direction: number) {
@@ -730,6 +981,51 @@ export class TokenSwap {
         position.positionInfo.index
       ),
     ]);
+  }
+
+  /**
+   *
+   * Claim fee from specified position, if user ATA not exist it will create.
+   * @param positionId The NFT token public key of position
+   * @param positionAccount The token account of position NFT.
+   * @returns
+   */
+  async claimAtomic(
+    positionId: PublicKey,
+    positionAccount: PublicKey | null = null
+  ): Promise<TransactionEnvelope> {
+    const { address: tokenAATA, instruction: tokenAATAInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: this.tokenSwapInfo.tokenAMint,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    const { address: tokenBATA, instruction: tokenBATAInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: this.tokenSwapInfo.tokenBMint,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    const instructions: TransactionInstruction[] = [];
+    if (tokenAATAInstruction !== null) {
+      instructions.push(tokenAATAInstruction);
+    }
+    if (tokenBATAInstruction !== null) {
+      instructions.push(tokenBATAInstruction);
+    }
+
+    const tx = await this.claim(
+      positionId,
+      tokenAATA,
+      tokenBATA,
+      positionAccount
+    );
+
+    tx.instructions.unshift(...instructions);
+
+    return tx;
   }
 
   /**
@@ -816,14 +1112,16 @@ export class TokenSwap {
   calculateLiquityByTokenA(
     tickLower: number,
     tickUpper: number,
-    desiredAmountA: Decimal
+    desiredAmountA: Decimal,
+    currentSqrtPrice = this.tokenSwapInfo.currentSqrtPrice
   ): { desiredAmountB: Decimal; liquity: Decimal } {
+    const currentTick = sqrtPrice2Tick(currentSqrtPrice);
     invariant(this.isLoaded, "The token swap not load");
     invariant(
-      this.currentTick <= tickUpper,
+      currentTick <= tickUpper,
       "when current price greater than upper price, can only add token b"
     );
-    if (this.currentTick < tickLower) {
+    if (currentTick < tickLower) {
       return {
         desiredAmountB: new Decimal(0),
         liquity: calculateLiquityOnlyA(tickLower, tickUpper, desiredAmountA),
@@ -833,7 +1131,7 @@ export class TokenSwap {
         tickLower,
         tickUpper,
         desiredAmountA,
-        this.tokenSwapInfo.currentSqrtPrice,
+        currentSqrtPrice,
         0
       );
       return {
@@ -852,14 +1150,16 @@ export class TokenSwap {
   calculateLiquityByTokenB(
     tickLower: number,
     tickUpper: number,
-    desiredAmountB: Decimal
+    desiredAmountB: Decimal,
+    currentSqrtPrice = this.tokenSwapInfo.currentSqrtPrice
   ): { desiredAmountA: Decimal; liquity: Decimal } {
+    const currentTick = sqrtPrice2Tick(currentSqrtPrice);
     invariant(this.isLoaded, "The token swap not load");
     invariant(
-      this.currentTick >= tickLower,
+      currentTick >= tickLower,
       "when current price less than lower price, can only add token a"
     );
-    if (this.currentTick > tickUpper) {
+    if (currentTick > tickUpper) {
       return {
         desiredAmountA: new Decimal(0),
         liquity: calculateLiquityOnlyB(tickLower, tickUpper, desiredAmountB),
@@ -869,7 +1169,7 @@ export class TokenSwap {
         tickLower,
         tickUpper,
         desiredAmountB,
-        this.tokenSwapInfo.currentSqrtPrice,
+        currentSqrtPrice,
         1
       );
       return {
@@ -1383,6 +1683,104 @@ export class TokenSwap {
     return {
       lowerTick,
       upperTick,
+    };
+  }
+
+  calculateFixSideTokenAmount(
+    lowerTick: number,
+    upperTick: number,
+    amountA: Decimal | null,
+    amountB: Decimal | null,
+    slid: Decimal = new Decimal(0.01)
+  ): {
+    desiredAmountA: Decimal;
+    desiredAmountB: Decimal;
+    maxAmountA: Decimal;
+    maxAmountB: Decimal;
+    desiredDeltaLiquity: Decimal;
+    maxDeltaLiquity: Decimal;
+    fixTokenType: number;
+    slidPrice: Decimal;
+  } {
+    let maxAmountA = new Decimal(0);
+    let maxAmountB = new Decimal(0);
+    let desiredAmountA = new Decimal(0);
+    let desiredAmountB = new Decimal(0);
+    let desiredDeltaLiquity = new Decimal(0);
+    let maxDeltaLiquity = new Decimal(0);
+    let fixTokenType = FIX_TOKEN_A;
+    let slidSqrtPrice = new Decimal(0);
+    // Fix token a
+    if (amountA !== null) {
+      const lamportsA = this.tokenALamports(amountA);
+      desiredAmountA = lamportsA;
+      maxAmountA = lamportsA;
+      const res = this.calculateLiquityByTokenA(
+        lowerTick,
+        upperTick,
+        lamportsA
+      );
+      desiredAmountB = res.desiredAmountB;
+      desiredDeltaLiquity = res.liquity;
+
+      slidSqrtPrice = this.tokenSwapInfo.currentSqrtPrice.mul(
+        new Decimal(1).add(slid).sqrt()
+      );
+      if (slidSqrtPrice.greaterThanOrEqualTo(tick2SqrtPrice(upperTick))) {
+        // FIX: Here will be crash, need change to another value
+        slidSqrtPrice = tick2SqrtPrice(upperTick);
+      }
+      const slidRes = this.calculateLiquityByTokenA(
+        lowerTick,
+        upperTick,
+        lamportsA,
+        slidSqrtPrice
+      );
+      maxAmountB = slidRes.desiredAmountB;
+      maxDeltaLiquity = slidRes.liquity;
+    } else {
+      invariant(
+        amountB !== null,
+        "You must specified the amount of token A or token B"
+      );
+      const lamportsB = this.tokenBLamports(amountB);
+      fixTokenType = FIX_TOKEN_B;
+      desiredAmountB = lamportsB;
+      maxAmountB = lamportsB;
+      const res = this.calculateLiquityByTokenB(
+        lowerTick,
+        upperTick,
+        lamportsB
+      );
+      desiredAmountA = res.desiredAmountA;
+      desiredDeltaLiquity = res.liquity;
+
+      slidSqrtPrice = this.tokenSwapInfo.currentSqrtPrice.mul(
+        new Decimal(1).sub(slid).sqrt()
+      );
+      if (slidSqrtPrice.lessThanOrEqualTo(tick2SqrtPrice(lowerTick))) {
+        // FIX: Here will be crash, need change to another value
+        slidSqrtPrice = tick2SqrtPrice(lowerTick);
+      }
+      const slidRes = this.calculateLiquityByTokenB(
+        lowerTick,
+        upperTick,
+        lamportsB,
+        slidSqrtPrice
+      );
+      maxAmountA = slidRes.desiredAmountA;
+      maxDeltaLiquity = slidRes.liquity;
+    }
+
+    return {
+      desiredAmountA,
+      desiredAmountB,
+      maxAmountA,
+      maxAmountB,
+      desiredDeltaLiquity,
+      maxDeltaLiquity,
+      fixTokenType,
+      slidPrice: this.tick2UiPrice(sqrtPrice2Tick(slidSqrtPrice)),
     };
   }
 

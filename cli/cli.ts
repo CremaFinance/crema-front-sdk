@@ -101,17 +101,39 @@ posCommand
   .option("-a --amountA <amountA>", "The amount of token A")
   .option("-b --amountB <amountB>", "The amount of token B")
   .option("-s --slid <sild>", "The slid rate")
+  .option(
+    "--fix",
+    "If fix the token amount, default it will fix the liquity amount"
+  )
   .action((arg) => {
     catchFinallyExit(
-      swap.mintPosition({
-        pairKey: new PublicKey(arg.pair),
-        lowerPrice: new Decimal(arg.lower),
-        upperPrice: new Decimal(arg.upper),
-        amountA: arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
-        amountB: arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
-        slid:
-          arg.slid !== undefined ? new Decimal(arg.slid) : new Decimal(0.01),
-      })
+      arg.fix
+        ? swap.mintPositionFix({
+            pairKey: new PublicKey(arg.pair),
+            lowerPrice: new Decimal(arg.lower),
+            upperPrice: new Decimal(arg.upper),
+            amountA:
+              arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
+            amountB:
+              arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
+            slid:
+              arg.slid !== undefined
+                ? new Decimal(arg.slid)
+                : new Decimal(0.01),
+          })
+        : swap.mintPosition({
+            pairKey: new PublicKey(arg.pair),
+            lowerPrice: new Decimal(arg.lower),
+            upperPrice: new Decimal(arg.upper),
+            amountA:
+              arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
+            amountB:
+              arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
+            slid:
+              arg.slid !== undefined
+                ? new Decimal(arg.slid)
+                : new Decimal(0.01),
+          })
     );
   });
 
@@ -124,17 +146,39 @@ posCommand
   .option("-a --amountA <amountA>", "The amount of token A")
   .option("-b --amountB <amountB>", "The amount of token B")
   .option("-s --slid <sild>", "The slid rate")
+  .option(
+    "--fix",
+    "If fix the token amount, default it will fix the liquity amount"
+  )
   .action((positionId, arg) => {
     catchFinallyExit(
-      swap.increaseLiquity({
-        pairKey: new PublicKey(arg.pair),
-        positionId: new PublicKey(positionId),
-        positionAccount: null,
-        amountA: arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
-        amountB: arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
-        slid:
-          arg.slid !== undefined ? new Decimal(arg.slid) : new Decimal(0.01),
-      })
+      arg.fix
+        ? swap.increaseLiquityFix({
+            pairKey: new PublicKey(arg.pair),
+            positionId: new PublicKey(positionId),
+            positionAccount: null,
+            amountA:
+              arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
+            amountB:
+              arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
+            slid:
+              arg.slid !== undefined
+                ? new Decimal(arg.slid)
+                : new Decimal(0.01),
+          })
+        : swap.increaseLiquity({
+            pairKey: new PublicKey(arg.pair),
+            positionId: new PublicKey(positionId),
+            positionAccount: null,
+            amountA:
+              arg.amountA !== undefined ? new Decimal(arg.amountA) : null,
+            amountB:
+              arg.amountB !== undefined ? new Decimal(arg.amountB) : null,
+            slid:
+              arg.slid !== undefined
+                ? new Decimal(arg.slid)
+                : new Decimal(0.01),
+          })
     );
   });
 
