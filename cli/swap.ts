@@ -27,8 +27,8 @@ export async function swapA2B({
   });
   const estimateResult = swap.preSwapA(lamports);
   printObjectTable({
-    outTokenMint: swap.tokenSwapInfo.tokenAMint,
-    inTokenMint: swap.tokenSwapInfo.tokenBMint,
+    from: swap.tokenSwapInfo.tokenAMint,
+    to: swap.tokenSwapInfo.tokenBMint,
     fromATA,
     toATA,
     amountOut: swap.tokenBAmount(estimateResult.amountOut),
@@ -55,7 +55,7 @@ export async function swapA2B({
   });
   if (getConfirm.confirm) {
     const minIncome = estimateResult.amountOut.div(new Decimal(1).add(slid));
-    const res = await swap.swap(fromATA, toATA, SWAP_A2B, lamports, minIncome);
+    const res = await swap.swapAotmic(SWAP_A2B, lamports, minIncome);
     const receipt = await res.confirm();
     printObjectJSON({
       signature: receipt.signature.toString(),
@@ -113,7 +113,7 @@ export async function swapB2A({
   });
   if (getConfirm.confirm) {
     const minIncome = estimateResult.amountOut.div(new Decimal(1).add(slid));
-    const res = await swap.swap(fromATA, toATA, SWAP_B2A, lamports, minIncome);
+    const res = await swap.swapAotmic(SWAP_B2A, lamports, minIncome);
     const receipt = await res.confirm();
     printObjectJSON({
       signature: receipt.signature.toString(),
