@@ -1,4 +1,9 @@
-import type { Provider } from "@saberhq/solana-contrib";
+import type {
+  BroadcastOptions,
+  Provider,
+  TransactionEnvelope,
+  TransactionReceipt,
+} from "@saberhq/solana-contrib";
 import { SignerWallet, SolanaProvider } from "@saberhq/solana-contrib";
 import { deserializeAccount } from "@saberhq/token-utils";
 import type { AccountInfo } from "@solana/spl-token";
@@ -16,6 +21,9 @@ import * as fs from "fs";
 import { exit } from "process";
 import invariant from "tiny-invariant";
 import { parse } from "yaml";
+
+import type { TokenInfo } from "./tokenList";
+import { getTokenInfo } from "./tokenList";
 
 export function keypairFromFile(path: string): Keypair {
   const secret = fs.readFileSync(path, "utf-8");
@@ -37,7 +45,7 @@ export function loadProvider(): Provider {
     connection: new Connection(url, {
       commitment: "recent",
       disableRetryOnRateLimit: true,
-      confirmTransactionInitialTimeout: 15 * 1000,
+      confirmTransactionInitialTimeout: 60 * 1000,
     }),
     wallet,
     opts: {
@@ -168,4 +176,51 @@ export function catchFinallyExit(pending: Promise<any>) {
     .finally(() => {
       exit(0);
     });
+}
+
+export async function confirmTx(
+  tx: TransactionEnvelope
+): Promise<TransactionReceipt> {
+  const opt: BroadcastOptions = {
+    skipPreflight: true,
+    commitment: "confirmed",
+    preflightCommitment: "confirmed",
+    maxRetries: 30,
+    printLogs: true,
+  };
+
+  const pendingTx = await tx.send(opt);
+  console.log("%s  confirming...", pendingTx.signature.toString());
+
+  return await pendingTx.wait({
+    commitment: "confirmed",
+    useWebsocket: true,
+    retries: 30,
+  });
+}
+
+export function receiptLog(receipt: TransactionReceipt): {
+  signature: string;
+  computeUnits: number;
+  blockTime: number | null | undefined;
+  solt: number;
+} {
+  return {
+    signature: receipt.signature.toString(),
+    computeUnits: receipt.computeUnits,
+    blockTime: receipt.response.blockTime,
+    solt: receipt.response.slot,
+  };
+}
+
+export function mustGetTokenInfo(address: PublicKey): TokenInfo {
+  const info = getTokenInfo(address);
+  return info !== undefined
+    ? info
+    : {
+        symbol: "unkown",
+        name: "unkown",
+        address: address.toBase58(),
+        decimals: 9,
+      };
 }

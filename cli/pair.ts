@@ -16,11 +16,15 @@ import {
   lamportPrice2uiPrice,
   uiPrice2LamportPrice,
 } from "../src/math";
+import { loadTokens } from "./tokenList";
 import {
+  confirmTx,
   getSigner,
   loadProvider,
+  mustGetTokenInfo,
   printObjectJSON,
   printObjectTable,
+  receiptLog,
 } from "./utils";
 
 export const DEFAULT_SWAP_PROGRAM_ID =
@@ -56,8 +60,13 @@ export function swapProgramId(): PublicKey {
 export async function loadSwapPair(pairKey: PublicKey): Promise<TokenSwap> {
   const provider = loadProvider();
   const pair = new TokenSwap(provider, swapProgramId(), pairKey);
+  await loadTokens();
   await pair.load();
   return pair;
+}
+
+export function pairName(mintA: PublicKey, mintB: PublicKey): string {
+  return `${mustGetTokenInfo(mintA).symbol}-${mustGetTokenInfo(mintB).symbol}`;
 }
 
 // The option of fetch swap pair
@@ -80,10 +89,12 @@ export interface SwapPairConfig {
 
 // Fetch the swap pair list
 export async function fetchSwapPairs() {
+  await loadTokens();
   const list = await TokenSwap.fetchSwapPairs(loadProvider(), swapProgramId());
   const output: any[] = [];
   list.forEach((v) => {
     output.push({
+      pair: pairName(v.tokenAMint, v.tokenBMint),
       swapKey: v.tokenSwapKey.toBase58(),
       manager: v.manager.toBase58(),
       tokenAMint: v.tokenAMint.toBase58(),
@@ -116,6 +127,10 @@ export async function fetchSwapPair(
   }
   if (opt.format === "table") {
     printObjectTable({
+      pair: pairName(
+        swapPair.tokenSwapInfo.tokenAMint,
+        swapPair.tokenSwapInfo.tokenBMint
+      ),
       ...swapPair.tokenSwapInfo,
       uiPrice: swapPair.uiPrice(),
       uiReversePrice: swapPair.uiReversePrice(),
@@ -128,6 +143,10 @@ export async function fetchSwapPair(
     console.log(
       JSON.stringify(
         {
+          pair: pairName(
+            swapPair.tokenSwapInfo.tokenAMint,
+            swapPair.tokenSwapInfo.tokenBMint
+          ),
           swapInfo: {
             uiPrice: swapPair.uiPrice(),
             uiReversePrice: swapPair.uiReversePrice(),
@@ -192,7 +211,7 @@ const getSwapConfigPrompt = () => {
       type: "input",
       name: "manager",
       message: "token manager address:",
-      default: getSigner().publicKey.toBase58(),
+      default: "BJ9NL8PCaNkPLC25xwiACqaNeEzfeWp8uxSDKi1EBZnh",
       validate: keyValidate,
     },
     {
@@ -211,18 +230,18 @@ const getSwapConfigPrompt = () => {
       type: "input",
       name: "managerFee",
       message: "The manager fee rate:",
-      default: "0.00005",
+      default: "0.00002",
     },
     {
       type: "input",
       name: "tickSpace",
       message: "The tick space:",
-      default: "10",
+      default: "5",
     },
     {
       type: "input",
       name: "tickAccountSize",
-      message: "The tick space:",
+      message: "The tick size:",
       default: "504000",
     },
   ];
@@ -231,6 +250,7 @@ const getSwapConfigPrompt = () => {
 
 export async function createSwapPairByConfig(configPath: string) {
   const config = getSwapConfigByFile(configPath);
+  await loadTokens();
   await createSwapPair(config);
 }
 
@@ -246,6 +266,7 @@ export async function createSwapPairByPrompt() {
     tickAccountSize: new Decimal(answers.tickAccountSize).toNumber(),
     initializePrice: new Decimal(answers.initializePrice),
   };
+  await loadTokens();
   await createSwapPair(config);
 }
 
@@ -274,6 +295,7 @@ async function createSwapPair(config: {
   );
 
   printObjectTable({
+    pair: pairName(config.tokenAMint, config.tokenBMint),
     ..._.omit(config, "initializePrice"),
     initializePrice: lamportPrice2uiPrice(
       config.initializePrice,
@@ -285,7 +307,7 @@ async function createSwapPair(config: {
     type: "confirm",
     name: "confirm",
     prefix: "",
-    message: "The above table is the emtimate swap result, confirm it ?",
+    message: "The above table is the swap pair information, confirm it ?",
   });
 
   if (getConfirm.confirm) {
@@ -294,10 +316,9 @@ async function createSwapPair(config: {
       programId: swapProgramId(),
       ...config,
     });
-    const receipt = await res.tx.confirm();
+    const receipt = await confirmTx(res.tx);
     printObjectJSON({
-      signature: receipt.signature.toString(),
-      cmpuateUnits: receipt.computeUnits,
+      ...receiptLog(receipt),
       swapInfo: {
         ..._.omit(res, "tx"),
         initializePriceWithDecimals: config.initializePrice,

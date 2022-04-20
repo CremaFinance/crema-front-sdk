@@ -1691,6 +1691,8 @@ export class TokenSwap {
     upperTick: number,
     amountA: Decimal | null,
     amountB: Decimal | null,
+    balanceA: Decimal,
+    balanceB: Decimal,
     slid: Decimal = new Decimal(0.01)
   ): {
     desiredAmountA: Decimal;
@@ -1698,7 +1700,7 @@ export class TokenSwap {
     maxAmountA: Decimal;
     maxAmountB: Decimal;
     desiredDeltaLiquity: Decimal;
-    maxDeltaLiquity: Decimal;
+    maxDeltaLiquity: Decimal | undefined;
     fixTokenType: number;
     slidPrice: Decimal;
   } {
@@ -1707,11 +1709,12 @@ export class TokenSwap {
     let desiredAmountA = new Decimal(0);
     let desiredAmountB = new Decimal(0);
     let desiredDeltaLiquity = new Decimal(0);
-    let maxDeltaLiquity = new Decimal(0);
+    let maxDeltaLiquity: Decimal | undefined = new Decimal(0);
     let fixTokenType = FIX_TOKEN_A;
     let slidSqrtPrice = new Decimal(0);
     // Fix token a
     if (amountA !== null) {
+      invariant(amountA.lessThanOrEqualTo(balanceA));
       const lamportsA = this.tokenALamports(amountA);
       desiredAmountA = lamportsA;
       maxAmountA = lamportsA;
@@ -1722,13 +1725,16 @@ export class TokenSwap {
       );
       desiredAmountB = res.desiredAmountB;
       desiredDeltaLiquity = res.liquity;
+      invariant(
+        desiredAmountB.lessThanOrEqualTo(balanceB),
+        "The fixed amount of token A is too large"
+      );
 
       slidSqrtPrice = this.tokenSwapInfo.currentSqrtPrice.mul(
         new Decimal(1).add(slid).sqrt()
       );
       if (slidSqrtPrice.greaterThanOrEqualTo(tick2SqrtPrice(upperTick))) {
-        // FIX: Here will be crash, need change to another value
-        slidSqrtPrice = tick2SqrtPrice(upperTick);
+        slidSqrtPrice = tick2SqrtPrice(upperTick - 1);
       }
       const slidRes = this.calculateLiquityByTokenA(
         lowerTick,
@@ -1736,13 +1742,19 @@ export class TokenSwap {
         lamportsA,
         slidSqrtPrice
       );
-      maxAmountB = slidRes.desiredAmountB;
-      maxDeltaLiquity = slidRes.liquity;
+      if (slidRes.desiredAmountB.greaterThan(balanceB)) {
+        maxAmountB = balanceB;
+        maxDeltaLiquity = undefined;
+      } else {
+        maxAmountB = slidRes.desiredAmountB;
+        maxDeltaLiquity = slidRes.liquity;
+      }
     } else {
       invariant(
         amountB !== null,
         "You must specified the amount of token A or token B"
       );
+      invariant(amountB.lessThanOrEqualTo(balanceB));
       const lamportsB = this.tokenBLamports(amountB);
       fixTokenType = FIX_TOKEN_B;
       desiredAmountB = lamportsB;
@@ -1754,13 +1766,16 @@ export class TokenSwap {
       );
       desiredAmountA = res.desiredAmountA;
       desiredDeltaLiquity = res.liquity;
+      invariant(
+        desiredAmountA.lessThanOrEqualTo(balanceA),
+        "The fixed amount of token B is too large"
+      );
 
       slidSqrtPrice = this.tokenSwapInfo.currentSqrtPrice.mul(
         new Decimal(1).sub(slid).sqrt()
       );
       if (slidSqrtPrice.lessThanOrEqualTo(tick2SqrtPrice(lowerTick))) {
-        // FIX: Here will be crash, need change to another value
-        slidSqrtPrice = tick2SqrtPrice(lowerTick);
+        slidSqrtPrice = tick2SqrtPrice(lowerTick + 1);
       }
       const slidRes = this.calculateLiquityByTokenB(
         lowerTick,
@@ -1768,8 +1783,13 @@ export class TokenSwap {
         lamportsB,
         slidSqrtPrice
       );
-      maxAmountA = slidRes.desiredAmountA;
-      maxDeltaLiquity = slidRes.liquity;
+      if (slidRes.desiredAmountA.greaterThan(balanceA)) {
+        maxAmountA = balanceB;
+        maxDeltaLiquity = undefined;
+      } else {
+        maxAmountA = slidRes.desiredAmountA;
+        maxDeltaLiquity = slidRes.liquity;
+      }
     }
 
     return {
