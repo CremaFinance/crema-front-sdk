@@ -7,10 +7,11 @@ import { Command } from "commander";
 import Decimal from "decimal.js";
 
 import { SWAP_A2B, SWAP_B2A } from "../src";
+import * as math from "../src/math";
 import * as swap from "./";
-import { catchFinallyExit } from "./";
+import { catchFinallyExit, printObjectTable } from "./";
 
-const program = new Command().name("crema-swap");
+export const program = new Command().name("crema-swap");
 
 // The pair command
 // --------------------------------------------------------------------------------------------------
@@ -314,37 +315,101 @@ program
 
 // TODO: The math command
 // --------------------------------------------------------------------------------------------------
-// const mathCommand = program
-//   .command("math")
-//   .description("The swap math command");
-//
-// mathCommand
-//   .command("liquity-amount")
-//   .description("Calculate the liquity amount")
-//   .requiredOption("-l --lower <lower>", "The lower tick")
-//   .requiredOption("-u --upper <lower>", "The upper tick")
-//   .option("--decimalsA <decimalsA>", "The token A decimals", "0")
-//   .option("--decimalsB <decimalsB>", "The token B decimals", "0")
-//   .requiredOption(
-//     "-c --currentSqrtPrice <currentSqrtPrice>",
-//     "The current sqrt price"
-//   )
-//   .argument("<liquity>", "The liquity amount");
-//
-// mathCommand
-//   .command("liquity")
-//   .description("Calculate the liquity")
-//   .requiredOption("-l --lower <lower>", "The lower tick")
-//   .requiredOption("-u --upper <lower>", "The upper tick")
-//   .requiredOption(
-//     "-c --currentSqrtPrice <currentSqrtPrice>",
-//     "The current sqrt price"
-//   )
-//   .option("-a --amountA <amountA>", "The amount of token A")
-//   .option("-b --amountB <amountB>", "The amount of token B")
-//   .option("--decimalsA <decimalsA>", "The token A decimals", "0")
-//   .option("--decimalsB <decimalsB>", "The token B decimals", "0")
-//   .option("-s --slid <sild>", "The slid rate");
+const mathCommand = program
+  .command("math")
+  .description("The swap math command");
+
+mathCommand
+  .command("token-amount")
+  .description("Calculate the liquity amount")
+  .requiredOption("-l --lower <lower>", "The lower tick")
+  .requiredOption("-u --upper <lower>", "The upper tick")
+  .requiredOption("-c --currentPrice <currentPrice>", "The current price")
+  .argument("<liquity>", "The liquity amount")
+  .action((l, arg) => {
+    const lowerTick: number = +arg.lower;
+    const upperTick: number = +arg.upper;
+    const currentSqrtPrice = new Decimal(arg.currentPrice).sqrt();
+    const liquity = new Decimal(l);
+    const res = math.calculateTokenAmount(
+      lowerTick,
+      upperTick,
+      currentSqrtPrice,
+      liquity
+    );
+    printObjectTable(res);
+  });
+
+mathCommand
+  .command("liquity")
+  .description("Calculate the liquity")
+  .requiredOption("-l --lower <lower>", "The lower tick")
+  .requiredOption("-u --upper <upper>", "The upper tick")
+  .requiredOption("-c --currentPrice <currentPrice>", "The current price")
+  .option("-a --amountA <amountA>", "The amount of token A")
+  .option("-b --amountB <amountB>", "The amount of token B")
+  .action((arg) => {
+    const lowerTick: number = +arg.lower;
+    const upperTick: number = +arg.upper;
+    const currentPrice = new Decimal(arg.currentPrice);
+    if (currentPrice.lessThanOrEqualTo(0)) {
+      console.log("Invalid current price, current price must in (0, maxU64]");
+      return;
+    }
+    const currentSqrtPrice = currentPrice.sqrt();
+    const amountA = new Decimal(arg.amountA);
+    const amountB = new Decimal(arg.amountB);
+    if (currentSqrtPrice.greaterThan(math.tick2SqrtPrice(upperTick))) {
+      const res = math.calculateLiquityOnlyB(lowerTick, upperTick, amountB);
+      printObjectTable({
+        side: "tokenB",
+        lowerPrice: math.tick2Price(lowerTick),
+        upperPrice: math.tick2Price(upperTick),
+        specialAmountSrc: amountB,
+        liquity: res,
+      });
+    } else if (currentSqrtPrice.lessThan(math.tick2SqrtPrice(lowerTick))) {
+      const res = math.calculateLiquityOnlyA(lowerTick, upperTick, amountA);
+      printObjectTable({
+        side: "tokenA",
+        lowerPrice: math.tick2Price(lowerTick),
+        upperPrice: math.tick2Price(upperTick),
+        specialAmountSrc: amountA,
+        liquity: res,
+      });
+    } else {
+      const resA = math.calculateLiquity(
+        lowerTick,
+        upperTick,
+        amountA,
+        currentSqrtPrice,
+        0
+      );
+      printObjectTable({
+        side: "tokenA",
+        lowerPrice: math.tick2Price(lowerTick),
+        upperPrice: math.tick2Price(upperTick),
+        specialAmountSrc: amountA,
+        ...resA,
+      });
+
+      const resB = math.calculateLiquity(
+        lowerTick,
+        upperTick,
+        amountB,
+        currentSqrtPrice,
+        1
+      );
+      printObjectTable({
+        side: "tokenB",
+        lowerPrice: math.tick2Price(lowerTick),
+        upperPrice: math.tick2Price(upperTick),
+        specialAmountSrc: amountB,
+        ...resA,
+        ...resB,
+      });
+    }
+  });
 //
 // mathCommand
 //   .command("tick2price")

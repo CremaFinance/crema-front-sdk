@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getATAAddress } from "@saberhq/token-utils";
+import { getATAAddress, getTokenAccount } from "@saberhq/token-utils";
 import type { PublicKey } from "@solana/web3.js";
 import { printTable } from "console-table-printer";
-import type Decimal from "decimal.js";
+import Decimal from "decimal.js";
 import * as inquire from "inquirer";
 import _ from "lodash";
 import { exit } from "process";
@@ -124,6 +124,18 @@ export async function mintPositionFix({
     upperPrice
   );
 
+  const userTokenA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenAMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+  const userTokenB = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenBMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+
+  const userTokenAInfo = await getTokenAccount(swap.provider, userTokenA);
+  const userTokenBInfo = await getTokenAccount(swap.provider, userTokenB);
+
   const {
     desiredAmountA,
     desiredAmountB,
@@ -138,17 +150,10 @@ export async function mintPositionFix({
     upperTick,
     amountA,
     amountB,
+    new Decimal(userTokenAInfo.amount.toString()),
+    new Decimal(userTokenBInfo.amount.toString()),
     slid
   );
-
-  const userTokenA = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenAMint,
-    owner: swap.provider.wallet.publicKey,
-  });
-  const userTokenB = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenBMint,
-    owner: swap.provider.wallet.publicKey,
-  });
 
   const res = await swap.mintPositionFixToken(
     userTokenA,
@@ -304,6 +309,8 @@ export async function increaseLiquityFix({
     mint: swap.tokenSwapInfo.tokenBMint,
     owner: swap.provider.wallet.publicKey,
   });
+  const userTokenAInfo = await getTokenAccount(swap.provider, userTokenA);
+  const userTokenBInfo = await getTokenAccount(swap.provider, userTokenB);
 
   const {
     desiredAmountA,
@@ -319,6 +326,8 @@ export async function increaseLiquityFix({
     position.upperTick,
     amountA,
     amountB,
+    new Decimal(userTokenAInfo.amount.toString()),
+    new Decimal(userTokenBInfo.amount.toString()),
     slid
   );
 
