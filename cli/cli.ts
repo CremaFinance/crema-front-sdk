@@ -9,7 +9,11 @@ import Decimal from "decimal.js";
 import { SWAP_A2B, SWAP_B2A } from "../src";
 import * as math from "../src/math";
 import * as swap from "./";
-import { catchFinallyExit, printObjectTable } from "./";
+import {
+  catchFinallyExit,
+  decodeDepositFixTokenLayout,
+  printObjectTable,
+} from "./";
 
 export const program = new Command().name("crema-swap");
 
@@ -410,6 +414,10 @@ mathCommand
       });
     }
   });
+
+mathCommand.command("decode-deposit-fix-token").action(() => {
+  decodeDepositFixTokenLayout();
+});
 //
 // mathCommand
 //   .command("tick2price")
@@ -424,5 +432,3 @@ mathCommand
 //   .argument("<price>", "the price")
 //   .option("--decimalsA <decimalsA>", "The token A decimals", "9")
 //   .option("--decimalsB <decimalsB>", "The token B decimals", "9");
-
-program.parse(process.argv);

@@ -9,6 +9,7 @@ import { exit } from "process";
 import invariant from "tiny-invariant";
 
 import { calculateTokenAmount, FIX_TOKEN_B } from "../src";
+import { Decode } from "../src/instructions/depositFixToken";
 import {
   loadSwapPair,
   printObjectJSON,
@@ -241,6 +242,16 @@ export async function increaseLiquity({
     slid,
   });
 
+  const tx = await swap.increaseLiquity(
+    positionId,
+    userTokenA,
+    userTokenB,
+    liquityResult.liquity,
+    liquityResult.maximumAmountA,
+    liquityResult.maximumAmountB,
+    positionAccount
+  );
+
   printObjectTable({
     swap: pairKey,
     positionId: position.positionId,
@@ -254,6 +265,7 @@ export async function increaseLiquity({
     minimumAmountA: swap.tokenAAmount(liquityResult.minimumAmountA),
     minimumAmountB: swap.tokenBAmount(liquityResult.minimumAmountB),
   });
+
   const getConfirm = await inquire.prompt({
     type: "confirm",
     name: "confirm",
@@ -261,15 +273,6 @@ export async function increaseLiquity({
     message:
       "The above table is the position info and the cost expect, confirm it ?",
   });
-  const tx = await swap.increaseLiquity(
-    positionId,
-    userTokenA,
-    userTokenB,
-    liquityResult.liquity,
-    liquityResult.maximumAmountA,
-    liquityResult.maximumAmountB,
-    positionAccount
-  );
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -331,6 +334,16 @@ export async function increaseLiquityFix({
     slid
   );
 
+  const tx = await swap.increaseLiquityFixToken(
+    positionId,
+    userTokenA,
+    userTokenB,
+    fixTokenType,
+    maxAmountA,
+    maxAmountB,
+    positionAccount
+  );
+
   printObjectTable({
     swap: pairKey,
     positionId: position.positionId,
@@ -354,15 +367,6 @@ export async function increaseLiquityFix({
     message:
       "The above table is the position info and the cost expect, confirm it ?",
   });
-  const tx = await swap.increaseLiquityFixToken(
-    positionId,
-    userTokenA,
-    userTokenB,
-    fixTokenType,
-    maxAmountA,
-    maxAmountB,
-    positionAccount
-  );
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -403,6 +407,14 @@ export async function decreaseLiquity({
     slid
   );
 
+  const tx = await swap.decreaseLiquityAtomic(
+    positionId,
+    positionValue.liquity,
+    positionValue.minAmountA,
+    positionValue.minAmountB,
+    positionAccount
+  );
+
   printObjectTable({
     swap: pairKey,
     positionId: position.positionId,
@@ -416,6 +428,7 @@ export async function decreaseLiquity({
     minimumAmountA: swap.tokenAAmount(positionValue.minAmountA),
     minimumAmountB: swap.tokenBAmount(positionValue.minAmountB),
   });
+
   const getConfirm = await inquire.prompt({
     type: "confirm",
     name: "confirm",
@@ -423,14 +436,6 @@ export async function decreaseLiquity({
     message:
       "The above table is the position info and expect token you will receive, confirm it ?",
   });
-
-  const tx = await swap.decreaseLiquityAtomic(
-    positionId,
-    positionValue.liquity,
-    positionValue.minAmountA,
-    positionValue.minAmountB,
-    positionAccount
-  );
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -487,10 +492,13 @@ export async function claim({
   const swap = await loadSwapPair(pairKey);
   const feeAmount = swap.preClaim(positionId);
 
+  const tx = await swap.claimAtomic(positionId, positionId);
+
   printObjectTable({
     pendingFeeA: swap.tokenAAmount(feeAmount.amountA),
     pendingFeeB: swap.tokenBAmount(feeAmount.amountB),
   });
+
   const getConfirm = await inquire.prompt({
     type: "confirm",
     name: "confirm",
@@ -498,8 +506,6 @@ export async function claim({
     message:
       "The above table is the expect  pending fee you will receive, claim it ?",
   });
-
-  const tx = await swap.claimAtomic(positionId, positionId);
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -541,4 +547,14 @@ export async function fetchPostion({
     pendingFeeA: swap.tokenAAmount(feeAmount.amountA),
     pendingFeeB: swap.tokenBAmount(feeAmount.amountB),
   });
+}
+
+export function decodeDepositFixTokenLayout() {
+  const buffer = Buffer.from([
+    0x09, 0x00, 0x01, 0x2a, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x19,
+    0x28, 0x30, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00, 0x30, 0x1a, 0x1e, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ]);
+  const data = Decode(buffer);
+  printObjectTable(data);
 }

@@ -7,7 +7,7 @@ import type Decimal from "decimal.js";
 import { decimalU64 } from "../util/layout";
 import { TokenSwapInstruction } from "./instruction";
 
-interface Data {
+export interface Data {
   instruction: number;
   isNewPosition: number;
   fixTokenType: number;
@@ -28,6 +28,10 @@ const DataLayout = struct<Data>([
   decimalU64("maximumTokenB"),
   decimalU64("positionIndex"),
 ]);
+
+export const Decode = (data: Buffer): Data => {
+  return DataLayout.decode(data);
+};
 
 export const depositFixTokenInstruction = (
   programId: PublicKey,

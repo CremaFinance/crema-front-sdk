@@ -1784,7 +1784,7 @@ export class TokenSwap {
         slidSqrtPrice
       );
       if (slidRes.desiredAmountA.greaterThan(balanceA)) {
-        maxAmountA = balanceB;
+        maxAmountA = balanceA;
         maxDeltaLiquity = undefined;
       } else {
         maxAmountA = slidRes.desiredAmountA;

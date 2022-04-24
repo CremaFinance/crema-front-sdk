@@ -1,10 +1,10 @@
 {
-  "name": "@cremafinance/swap-sdk",
-  "version": "2.0.0",
+  "name": "@currie0612/swap-sdk",
+  "version": "2.0.5",
   "description": "the front sdk for crema swap",
   "license": "MIT",
   "scripts": {
-    "cli": "ts-node ./cli/cli.ts",
+    "cli": "ts-node ./cli/main.ts",
     "build": "rm -fr dist/ && tsc -P ./tsconfig.esm.json && tsc -P ./tsconfig.cjs.json",
     "test:unit": "yarn mocha ./test/* --require ts-node/register"
   },
