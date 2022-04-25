@@ -7,7 +7,12 @@ import {
   getOrCreateATA,
   getTokenAccount,
 } from "@saberhq/token-utils";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  createCloseAccountInstruction,
+  createSyncNativeInstruction,
+  NATIVE_MINT,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token-v2";
 import type {
   GetProgramAccountsConfig,
   TransactionInstruction,
@@ -64,7 +69,6 @@ export const SWAP_B2A = 1;
 export const SWAP_A2B = 0;
 export const FIX_TOKEN_A = 0;
 export const FIX_TOKEN_B = 1;
-
 export interface PositionInfo {
   positionsKey: PublicKey;
   index: Decimal;
@@ -516,6 +520,19 @@ export class TokenSwap {
       )
     );
 
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
+      instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
+      instructions.push(...unwrapSOLInstructions.instructions);
+    }
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
+      instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
+      instructions.push(...unwrapSOLInstructions.instructions);
+    }
+
     return {
       positionId: positionNftMint.publicKey,
       positionAccount,
@@ -606,6 +623,20 @@ export class TokenSwap {
       )
     );
 
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
+      instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
+      instructions.push(...unwrapSOLInstructions.instructions);
+    }
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      console.log("Wrap sol...");
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
+      instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
+      instructions.push(...unwrapSOLInstructions.instructions);
+    }
+
     return {
       positionId: positionNftMint.publicKey,
       positionAccount,
@@ -643,7 +674,7 @@ export class TokenSwap {
       positionAccount
     );
 
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       depositAllTokenTypesInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -666,6 +697,20 @@ export class TokenSwap {
         position.positionInfo.index
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
+      tx.instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
+      tx.instructions.push(...unwrapSOLInstructions.instructions);
+    }
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
+      tx.instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
+      tx.instructions.push(...unwrapSOLInstructions.instructions);
+    }
+    return tx;
   }
 
   /**
@@ -695,7 +740,7 @@ export class TokenSwap {
       positionAccount
     );
 
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       depositFixTokenInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -718,6 +763,21 @@ export class TokenSwap {
         position.positionInfo.index
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
+      tx.instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
+      tx.instructions.push(...unwrapSOLInstructions.instructions);
+    }
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
+      tx.instructions.unshift(...wrapSOLInstructions.instructions);
+      const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
+      tx.instructions.push(...unwrapSOLInstructions.instructions);
+    }
+
+    return tx;
   }
 
   /**
@@ -749,7 +809,7 @@ export class TokenSwap {
     );
 
     // Create withdrawAllTokenTypes instruction
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       withdrawAllTokenTypesInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -769,6 +829,17 @@ export class TokenSwap {
         position.positionInfo.index
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(userTokenA);
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(userTokenB);
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+    return tx;
   }
 
   /**
@@ -854,7 +925,7 @@ export class TokenSwap {
             swapDst: this.tokenSwapInfo.swapTokenA,
           };
 
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       swapInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -869,6 +940,28 @@ export class TokenSwap {
         minimumAmountOut
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      if (direct === SWAP_A2B) {
+        const wrapSOLTx = await this.wrapSOL(amountIn);
+        tx.instructions.unshift(...wrapSOLTx.instructions);
+      } else {
+        const unwrapSOLTx = await this.unwrapSOL(userDestination);
+        tx.instructions.push(...unwrapSOLTx.instructions);
+      }
+    }
+
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      if (direct === SWAP_A2B) {
+        const unwrapSOLTx = await this.unwrapSOL(userDestination);
+        tx.instructions.push(...unwrapSOLTx.instructions);
+      } else {
+        const wrapSOLTx = await this.wrapSOL(amountIn);
+        tx.instructions.unshift(...wrapSOLTx.instructions);
+      }
+    }
+
+    return tx;
   }
 
   /**
@@ -964,7 +1057,7 @@ export class TokenSwap {
       positionAccount
     );
 
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       claimInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -981,6 +1074,17 @@ export class TokenSwap {
         position.positionInfo.index
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(userTokenA);
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(userTokenB);
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+    return tx;
   }
 
   /**
@@ -1036,7 +1140,7 @@ export class TokenSwap {
     if (!this.isLoaded) {
       await this.load();
     }
-    return new TransactionEnvelope(this.provider, [
+    const tx = new TransactionEnvelope(this.provider, [
       managerClaimInstruction(
         this.programId,
         this.tokenSwapKey,
@@ -1048,6 +1152,23 @@ export class TokenSwap {
         this.tokenSwapInfo.managerTokenB
       ),
     ]);
+
+    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(
+        this.tokenSwapInfo.managerTokenA,
+        this.tokenSwapInfo.manager
+      );
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+
+    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+      const unwrapSOLTx = await this.unwrapSOL(
+        this.tokenSwapInfo.managerTokenB,
+        this.tokenSwapInfo.manager
+      );
+      tx.instructions.push(...unwrapSOLTx.instructions);
+    }
+    return tx;
   }
 
   /**
@@ -1802,6 +1923,51 @@ export class TokenSwap {
       fixTokenType,
       slidPrice: this.tick2UiPrice(sqrtPrice2Tick(slidSqrtPrice)),
     };
+  }
+
+  async wrapSOL(amount: Decimal): Promise<TransactionEnvelope> {
+    invariant(amount.greaterThan(0));
+    const tx = new TransactionEnvelope(this.provider, []);
+    const { address: ataAddress, instruction: ataInstruction } =
+      await getOrCreateATA({
+        provider: this.provider,
+        mint: NATIVE_MINT,
+        owner: this.provider.wallet.publicKey,
+        payer: this.provider.wallet.publicKey,
+      });
+    if (ataInstruction !== null) {
+      tx.instructions.push(ataInstruction);
+    }
+    console.log(ataAddress.toBase58(), amount.toString());
+    tx.instructions.push(
+      SystemProgram.transfer({
+        fromPubkey: this.provider.wallet.publicKey,
+        toPubkey: ataAddress,
+        lamports: amount.toNumber(),
+      })
+    );
+    tx.instructions.push(createSyncNativeInstruction(ataAddress));
+    return tx;
+  }
+
+  async unwrapSOL(
+    ataAddress: PublicKey,
+    dest: PublicKey = this.provider.wallet.publicKey
+  ): Promise<TransactionEnvelope> {
+    const accountInfo = await getTokenAccount(this.provider, ataAddress);
+    invariant(accountInfo.mint.equals(NATIVE_MINT));
+    console.log(
+      ataAddress.toBase58(),
+      dest.toBase58(),
+      TOKEN_PROGRAM_ID.toBase58()
+    );
+    const tx = createCloseAccountInstruction(
+      ataAddress,
+      dest,
+      this.provider.wallet.publicKey
+    );
+    console.log(tx);
+    return new TransactionEnvelope(this.provider, [tx]);
   }
 
   private async _checkUserPositionAccount(
