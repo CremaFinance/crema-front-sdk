@@ -44,6 +44,7 @@ import {
   calculateTokenAmount,
   getNearestTickByPrice,
   lamportPrice2uiPrice,
+  maxAmountA,
   sqrtPrice2Tick,
   tick2SqrtPrice,
   tick2UiPrice,
@@ -520,13 +521,19 @@ export class TokenSwap {
       )
     );
 
-    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT) &&
+      maximumAmountA.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
       instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
       instructions.push(...unwrapSOLInstructions.instructions);
     }
-    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT) &&
+      maximumAmountB.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
       instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
@@ -623,13 +630,19 @@ export class TokenSwap {
       )
     );
 
-    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT) &&
+      maximumAmountA.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
       instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
       instructions.push(...unwrapSOLInstructions.instructions);
     }
-    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT) &&
+      maximumAmountB.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
       instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
@@ -697,13 +710,19 @@ export class TokenSwap {
       ),
     ]);
 
-    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT) &&
+      maximumAmountA.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
       tx.instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
       tx.instructions.push(...unwrapSOLInstructions.instructions);
     }
-    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT) &&
+      maximumAmountB.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
       tx.instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
@@ -763,13 +782,19 @@ export class TokenSwap {
       ),
     ]);
 
-    if (this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT) &&
+      maximumAmountA.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountA);
       tx.instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenA);
       tx.instructions.push(...unwrapSOLInstructions.instructions);
     }
-    if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    if (
+      this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT) &&
+      maximumAmountB.greaterThan(0)
+    ) {
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
       tx.instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
