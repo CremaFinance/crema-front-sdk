@@ -630,7 +630,6 @@ export class TokenSwap {
       instructions.push(...unwrapSOLInstructions.instructions);
     }
     if (this.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
-      console.log("Wrap sol...");
       const wrapSOLInstructions = await this.wrapSOL(maximumAmountB);
       instructions.unshift(...wrapSOLInstructions.instructions);
       const unwrapSOLInstructions = await this.unwrapSOL(userTokenB);
@@ -1938,7 +1937,6 @@ export class TokenSwap {
     if (ataInstruction !== null) {
       tx.instructions.push(ataInstruction);
     }
-    console.log(ataAddress.toBase58(), amount.toString());
     tx.instructions.push(
       SystemProgram.transfer({
         fromPubkey: this.provider.wallet.publicKey,
@@ -1954,19 +1952,16 @@ export class TokenSwap {
     ataAddress: PublicKey,
     dest: PublicKey = this.provider.wallet.publicKey
   ): Promise<TransactionEnvelope> {
-    const accountInfo = await getTokenAccount(this.provider, ataAddress);
-    invariant(accountInfo.mint.equals(NATIVE_MINT));
-    console.log(
-      ataAddress.toBase58(),
-      dest.toBase58(),
-      TOKEN_PROGRAM_ID.toBase58()
-    );
+    const checkAta = await getATAAddress({
+      mint: NATIVE_MINT,
+      owner: this.provider.wallet.publicKey,
+    });
+    invariant(ataAddress.equals(checkAta), "Only allow close wrap SOL ata");
     const tx = createCloseAccountInstruction(
       ataAddress,
       dest,
       this.provider.wallet.publicKey
     );
-    console.log(tx);
     return new TransactionEnvelope(this.provider, [tx]);
   }
 
