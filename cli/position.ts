@@ -146,7 +146,7 @@ export async function mintPositionFix({
       swap.provider.wallet.publicKey
     );
     balanceA =
-      balanceSOL > 1000000 ? new Decimal(balanceSOL - 1000000) : balanceA;
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceA;
   } else {
     await getTokenAccount(swap.provider, userTokenA)
       .then((resp) => {
@@ -165,7 +165,7 @@ export async function mintPositionFix({
       swap.provider.wallet.publicKey
     );
     balanceB =
-      balanceSOL > 1000000 ? new Decimal(balanceSOL - 1000000) : balanceB;
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceB;
   } else {
     await getTokenAccount(swap.provider, userTokenB)
       .then((resp) => {
@@ -606,8 +606,8 @@ export async function fetchPostion({
 
 export function decodeDepositFixTokenLayout() {
   const buffer = Buffer.from([
-    0x09, 0x00, 0x01, 0x2a, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x19,
-    0x28, 0x30, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00, 0x30, 0x1a, 0x1e, 0x01,
+    0x09, 0x00, 0x00, 0x8e, 0x6f, 0x00, 0x00, 0x1f, 0x70, 0x00, 0x00, 0x00,
+    0x9d, 0x7b, 0x0a, 0x10, 0x09, 0x00, 0x00, 0xd9, 0x6f, 0x0c, 0x40, 0x15,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   ]);
   const data = Decode(buffer);

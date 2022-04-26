@@ -1927,6 +1927,7 @@ export class TokenSwap {
   async wrapSOL(amount: Decimal): Promise<TransactionEnvelope> {
     invariant(amount.greaterThan(0));
     const tx = new TransactionEnvelope(this.provider, []);
+    const fee = new Decimal(2000000);
     const { address: ataAddress, instruction: ataInstruction } =
       await getOrCreateATA({
         provider: this.provider,
@@ -1941,7 +1942,7 @@ export class TokenSwap {
       SystemProgram.transfer({
         fromPubkey: this.provider.wallet.publicKey,
         toPubkey: ataAddress,
-        lamports: amount.toNumber(),
+        lamports: amount.add(fee).toNumber(),
       })
     );
     tx.instructions.push(createSyncNativeInstruction(ataAddress));
