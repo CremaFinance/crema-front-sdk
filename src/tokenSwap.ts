@@ -969,6 +969,8 @@ export class TokenSwap {
       if (direct === SWAP_A2B) {
         const wrapSOLTx = await this.wrapSOL(amountIn);
         tx.instructions.unshift(...wrapSOLTx.instructions);
+        const unwrapSOLTx = await this.unwrapSOL(userSource);
+        tx.instructions.push(...unwrapSOLTx.instructions);
       } else {
         const unwrapSOLTx = await this.unwrapSOL(userDestination);
         tx.instructions.push(...unwrapSOLTx.instructions);
@@ -982,6 +984,8 @@ export class TokenSwap {
       } else {
         const wrapSOLTx = await this.wrapSOL(amountIn);
         tx.instructions.unshift(...wrapSOLTx.instructions);
+        const unwrapSOLTx = await this.unwrapSOL(userSource);
+        tx.instructions.push(...unwrapSOLTx.instructions);
       }
     }
 
@@ -1952,7 +1956,6 @@ export class TokenSwap {
   async wrapSOL(amount: Decimal): Promise<TransactionEnvelope> {
     invariant(amount.greaterThan(0));
     const tx = new TransactionEnvelope(this.provider, []);
-    const fee = new Decimal(2000000);
     const { address: ataAddress, instruction: ataInstruction } =
       await getOrCreateATA({
         provider: this.provider,
@@ -1967,7 +1970,7 @@ export class TokenSwap {
       SystemProgram.transfer({
         fromPubkey: this.provider.wallet.publicKey,
         toPubkey: ataAddress,
-        lamports: amount.add(fee).toNumber(),
+        lamports: amount.toNumber(),
       })
     );
     tx.instructions.push(createSyncNativeInstruction(ataAddress));
