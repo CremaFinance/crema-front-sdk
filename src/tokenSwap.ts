@@ -44,7 +44,6 @@ import {
   calculateTokenAmount,
   getNearestTickByPrice,
   lamportPrice2uiPrice,
-  maxAmountA,
   sqrtPrice2Tick,
   tick2SqrtPrice,
   tick2UiPrice,
@@ -941,13 +940,13 @@ export class TokenSwap {
     const { swapSrc, swapDst } =
       direct === SWAP_A2B
         ? {
-            swapSrc: this.tokenSwapInfo.swapTokenA,
-            swapDst: this.tokenSwapInfo.swapTokenB,
-          }
+          swapSrc: this.tokenSwapInfo.swapTokenA,
+          swapDst: this.tokenSwapInfo.swapTokenB,
+        }
         : {
-            swapSrc: this.tokenSwapInfo.swapTokenB,
-            swapDst: this.tokenSwapInfo.swapTokenA,
-          };
+          swapSrc: this.tokenSwapInfo.swapTokenB,
+          swapDst: this.tokenSwapInfo.swapTokenA,
+        };
 
     const tx = new TransactionEnvelope(this.provider, [
       swapInstruction(
@@ -1007,13 +1006,13 @@ export class TokenSwap {
     const { srcMint, dstMint } =
       direct === SWAP_A2B
         ? {
-            srcMint: this.tokenSwapInfo.tokenAMint,
-            dstMint: this.tokenSwapInfo.tokenBMint,
-          }
+          srcMint: this.tokenSwapInfo.tokenAMint,
+          dstMint: this.tokenSwapInfo.tokenBMint,
+        }
         : {
-            srcMint: this.tokenSwapInfo.tokenBMint,
-            dstMint: this.tokenSwapInfo.tokenAMint,
-          };
+          srcMint: this.tokenSwapInfo.tokenBMint,
+          dstMint: this.tokenSwapInfo.tokenAMint,
+        };
     const { address: dstATA, instruction: dstATAInstruction } =
       await getOrCreateATA({
         provider: this.provider,
