@@ -1,14 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getATAAddress } from "@saberhq/token-utils";
+import {
+  getATAAddress,
+  getTokenAccount,
+  NATIVE_MINT,
+} from "@saberhq/token-utils";
 import type { PublicKey } from "@solana/web3.js";
 import { printTable } from "console-table-printer";
-import type Decimal from "decimal.js";
+import Decimal from "decimal.js";
 import * as inquire from "inquirer";
 import _ from "lodash";
 import { exit } from "process";
 import invariant from "tiny-invariant";
 
-import { calculateTokenAmount } from "../src";
+import { calculateTokenAmount, FIX_TOKEN_B } from "../src";
+import { Decode } from "../src/instructions/depositFixToken";
 import {
   loadSwapPair,
   printObjectJSON,
@@ -72,12 +77,166 @@ export async function mintPosition({
     positionId: res.positionId,
     positionAccount: res.positionAccount,
     positionsKey: res.positionsKey,
-    amountA: swap.tokenAAmount(liquityResult.amountA),
-    amountB: swap.tokenBAmount(liquityResult.amountB),
+    desiredAmountA: swap.tokenAAmount(liquityResult.amountA),
+    desiredAmountB: swap.tokenBAmount(liquityResult.amountB),
     maximumAmountA: swap.tokenAAmount(liquityResult.maximumAmountA),
     maximumAmountB: swap.tokenBAmount(liquityResult.maximumAmountB),
     minimumAmountA: swap.tokenAAmount(liquityResult.minimumAmountA),
     minimumAmountB: swap.tokenBAmount(liquityResult.minimumAmountB),
+  });
+
+  const getConfirm = await inquire.prompt({
+    type: "confirm",
+    name: "confirm",
+    prefix: "",
+    message:
+      "The above table is the position info and the cost expect, confirm it ?",
+  });
+
+  if (getConfirm.confirm) {
+    const receipt = await res.tx.confirm();
+    printObjectJSON({
+      signature: receipt.signature.toString(),
+      cmpuateUnits: receipt.computeUnits,
+      positionInfo: {
+        swap: pairKey,
+        ..._.omit(res, "tx"),
+      },
+    });
+  } else {
+    exit(0);
+  }
+}
+
+export async function mintPositionFix({
+  pairKey,
+  lowerPrice,
+  upperPrice,
+  amountA,
+  amountB,
+  slid,
+  isDebug = true,
+}: {
+  pairKey: PublicKey;
+  lowerPrice: Decimal;
+  upperPrice: Decimal;
+  amountA: Decimal | null;
+  amountB: Decimal | null;
+  slid: Decimal;
+  isDebug: boolean;
+}) {
+  const swap = await loadSwapPair(pairKey);
+  const { lowerTick, upperTick } = swap.calculateEffectivTick(
+    lowerPrice,
+    upperPrice
+  );
+
+  const userTokenB = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenBMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+  const userTokenA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenAMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+
+  let balanceA = new Decimal(0);
+  if (swap.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    const balanceSOL = await swap.provider.connection.getBalance(
+      swap.provider.wallet.publicKey
+    );
+    balanceA =
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceA;
+  } else {
+    await getTokenAccount(swap.provider, userTokenA)
+      .then((resp) => {
+        balanceA = new Decimal(resp.amount.toString());
+      })
+      .catch(() => {
+        console.log(
+          `You don't hava token account of ${swap.tokenSwapInfo.tokenAMint.toBase58()}`
+        );
+      });
+  }
+
+  let balanceB = new Decimal(0);
+  if (swap.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    const balanceSOL = await swap.provider.connection.getBalance(
+      swap.provider.wallet.publicKey
+    );
+    balanceB =
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceB;
+  } else {
+    await getTokenAccount(swap.provider, userTokenB)
+      .then((resp) => {
+        balanceB = new Decimal(resp.amount.toString());
+      })
+      .catch(() => {
+        console.log(
+          `You don't hava token account of ${swap.tokenSwapInfo.tokenBMint.toBase58()}`
+        );
+      });
+  }
+  if (balanceA.lessThanOrEqualTo(0)) {
+    if (isDebug) {
+      balanceA = new Decimal(1000000000000000);
+    } else {
+      throw new Error("Not enough token A");
+    }
+  }
+  if (balanceB.lessThanOrEqualTo(0)) {
+    if (isDebug) {
+      balanceB = new Decimal(1000000000000000);
+    } else {
+      throw new Error("Not enough token B");
+    }
+  }
+
+  const {
+    desiredAmountA,
+    desiredAmountB,
+    maxAmountA,
+    maxAmountB,
+    desiredDeltaLiquity,
+    maxDeltaLiquity,
+    fixTokenType,
+    slidPrice,
+  } = swap.calculateFixSideTokenAmount(
+    lowerTick,
+    upperTick,
+    amountA,
+    amountB,
+    balanceA,
+    balanceB,
+    slid
+  );
+
+  const res = await swap.mintPositionFixToken(
+    userTokenA,
+    userTokenB,
+    fixTokenType,
+    lowerTick,
+    upperTick,
+    maxAmountA,
+    maxAmountB
+  );
+
+  printObjectTable({
+    swap: pairKey,
+    currentPrice: swap.uiPrice(),
+    slidPrice,
+    lowerPrice,
+    upperPrice,
+    positionId: res.positionId,
+    positionAccount: res.positionAccount,
+    positionsKey: res.positionsKey,
+    desiredAmountA: swap.tokenAAmount(desiredAmountA),
+    maxAmountA: swap.tokenAAmount(maxAmountA),
+    desiredAmountB: swap.tokenBAmount(desiredAmountB),
+    maxAmountB: swap.tokenBAmount(maxAmountB),
+    desiredDeltaLiquity,
+    maxDeltaLiquity,
+    fixToken: fixTokenType === FIX_TOKEN_B ? "tokenB" : "tokenA",
   });
 
   const getConfirm = await inquire.prompt({
@@ -138,26 +297,6 @@ export async function increaseLiquity({
     slid,
   });
 
-  printObjectTable({
-    swap: pairKey,
-    positionId: position.positionId,
-    currentPrice: swap.uiPrice(),
-    lowerPrice: swap.tick2UiPrice(position.lowerTick),
-    upperPrice: swap.tick2UiPrice(position.upperTick),
-    amountA: swap.tokenAAmount(liquityResult.amountA),
-    amountB: swap.tokenBAmount(liquityResult.amountB),
-    maximumAmountA: swap.tokenAAmount(liquityResult.maximumAmountA),
-    maximumAmountB: swap.tokenBAmount(liquityResult.maximumAmountB),
-    minimumAmountA: swap.tokenAAmount(liquityResult.minimumAmountA),
-    minimumAmountB: swap.tokenBAmount(liquityResult.minimumAmountB),
-  });
-  const getConfirm = await inquire.prompt({
-    type: "confirm",
-    name: "confirm",
-    prefix: "",
-    message:
-      "The above table is the position info and the cost expect, confirm it ?",
-  });
   const tx = await swap.increaseLiquity(
     positionId,
     userTokenA,
@@ -167,6 +306,122 @@ export async function increaseLiquity({
     liquityResult.maximumAmountB,
     positionAccount
   );
+
+  printObjectTable({
+    swap: pairKey,
+    positionId: position.positionId,
+    currentPrice: swap.uiPrice(),
+    lowerPrice: swap.tick2UiPrice(position.lowerTick),
+    upperPrice: swap.tick2UiPrice(position.upperTick),
+    desiredAmountA: swap.tokenAAmount(liquityResult.amountA),
+    desiredAmountB: swap.tokenBAmount(liquityResult.amountB),
+    maximumAmountA: swap.tokenAAmount(liquityResult.maximumAmountA),
+    maximumAmountB: swap.tokenBAmount(liquityResult.maximumAmountB),
+    minimumAmountA: swap.tokenAAmount(liquityResult.minimumAmountA),
+    minimumAmountB: swap.tokenBAmount(liquityResult.minimumAmountB),
+  });
+
+  const getConfirm = await inquire.prompt({
+    type: "confirm",
+    name: "confirm",
+    prefix: "",
+    message:
+      "The above table is the position info and the cost expect, confirm it ?",
+  });
+
+  if (getConfirm.confirm) {
+    const receipt = await tx.confirm();
+    printObjectJSON({
+      signature: receipt.signature.toString(),
+      cmpuateUnits: receipt.computeUnits,
+      message: "incease liquity success",
+    });
+  } else {
+    exit(0);
+  }
+}
+
+export async function increaseLiquityFix({
+  pairKey,
+  positionId,
+  positionAccount,
+  amountA,
+  amountB,
+  slid,
+}: {
+  pairKey: PublicKey;
+  positionId: PublicKey;
+  positionAccount: PublicKey | null;
+  amountA: Decimal | null;
+  amountB: Decimal | null;
+  slid: Decimal;
+}) {
+  const swap = await loadSwapPair(pairKey);
+  const position = swap.getPositionInfo(positionId);
+  invariant(position !== undefined, "The position not found");
+  const userTokenA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenAMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+  const userTokenB = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenBMint,
+    owner: swap.provider.wallet.publicKey,
+  });
+  const userTokenAInfo = await getTokenAccount(swap.provider, userTokenA);
+  const userTokenBInfo = await getTokenAccount(swap.provider, userTokenB);
+
+  const {
+    desiredAmountA,
+    desiredAmountB,
+    maxAmountA,
+    maxAmountB,
+    desiredDeltaLiquity,
+    maxDeltaLiquity,
+    fixTokenType,
+    slidPrice,
+  } = swap.calculateFixSideTokenAmount(
+    position.lowerTick,
+    position.upperTick,
+    amountA,
+    amountB,
+    new Decimal(userTokenAInfo.amount.toString()),
+    new Decimal(userTokenBInfo.amount.toString()),
+    slid
+  );
+
+  const tx = await swap.increaseLiquityFixToken(
+    positionId,
+    userTokenA,
+    userTokenB,
+    fixTokenType,
+    maxAmountA,
+    maxAmountB,
+    positionAccount
+  );
+
+  printObjectTable({
+    swap: pairKey,
+    positionId: position.positionId,
+    currentPrice: swap.uiPrice(),
+    slidPrice,
+    lowerPrice: swap.tick2UiPrice(position.lowerTick),
+    upperPrice: swap.tick2UiPrice(position.upperTick),
+    desiredAmountA: swap.tokenAAmount(desiredAmountA),
+    maxAmountA: swap.tokenAAmount(maxAmountA),
+    desiredAmountB: swap.tokenBAmount(desiredAmountB),
+    maxAmountB: swap.tokenBAmount(maxAmountB),
+    desiredDeltaLiquity,
+    maxDeltaLiquity,
+    fixToken: fixTokenType === FIX_TOKEN_B ? "tokenB" : "tokenA",
+  });
+
+  const getConfirm = await inquire.prompt({
+    type: "confirm",
+    name: "confirm",
+    prefix: "",
+    message:
+      "The above table is the position info and the cost expect, confirm it ?",
+  });
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -200,19 +455,19 @@ export async function decreaseLiquity({
   const swap = await loadSwapPair(pairKey);
   const position = swap.getPositionInfo(positionId);
   invariant(position !== undefined, "The position not found");
-  const userTokenA = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenAMint,
-    owner: swap.provider.wallet.publicKey,
-  });
-  const userTokenB = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenBMint,
-    owner: swap.provider.wallet.publicKey,
-  });
 
   const positionValue = swap.calculatePositionValueWithSlid(
     positionId,
     percent,
     slid
+  );
+
+  const tx = await swap.decreaseLiquityAtomic(
+    positionId,
+    positionValue.liquity,
+    positionValue.minAmountA,
+    positionValue.minAmountB,
+    positionAccount
   );
 
   printObjectTable({
@@ -228,6 +483,7 @@ export async function decreaseLiquity({
     minimumAmountA: swap.tokenAAmount(positionValue.minAmountA),
     minimumAmountB: swap.tokenBAmount(positionValue.minAmountB),
   });
+
   const getConfirm = await inquire.prompt({
     type: "confirm",
     name: "confirm",
@@ -235,16 +491,6 @@ export async function decreaseLiquity({
     message:
       "The above table is the position info and expect token you will receive, confirm it ?",
   });
-
-  const tx = await swap.decreaseLiquity(
-    positionId,
-    userTokenA,
-    userTokenB,
-    positionValue.liquity,
-    positionValue.minAmountA,
-    positionValue.minAmountB,
-    positionAccount
-  );
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -299,20 +545,15 @@ export async function claim({
   positionId: PublicKey;
 }) {
   const swap = await loadSwapPair(pairKey);
-  const userTokenA = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenAMint,
-    owner: swap.provider.wallet.publicKey,
-  });
-  const userTokenB = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenBMint,
-    owner: swap.provider.wallet.publicKey,
-  });
   const feeAmount = swap.preClaim(positionId);
+
+  const tx = await swap.claimAtomic(positionId, positionId);
 
   printObjectTable({
     pendingFeeA: swap.tokenAAmount(feeAmount.amountA),
     pendingFeeB: swap.tokenBAmount(feeAmount.amountB),
   });
+
   const getConfirm = await inquire.prompt({
     type: "confirm",
     name: "confirm",
@@ -320,8 +561,6 @@ export async function claim({
     message:
       "The above table is the expect  pending fee you will receive, claim it ?",
   });
-
-  const tx = await swap.claim(positionId, userTokenA, userTokenB, positionId);
 
   if (getConfirm.confirm) {
     const receipt = await tx.confirm();
@@ -363,4 +602,14 @@ export async function fetchPostion({
     pendingFeeA: swap.tokenAAmount(feeAmount.amountA),
     pendingFeeB: swap.tokenBAmount(feeAmount.amountB),
   });
+}
+
+export function decodeDepositFixTokenLayout() {
+  const buffer = Buffer.from([
+    0x09, 0x00, 0x00, 0x8e, 0x6f, 0x00, 0x00, 0x1f, 0x70, 0x00, 0x00, 0x00,
+    0x9d, 0x7b, 0x0a, 0x10, 0x09, 0x00, 0x00, 0xd9, 0x6f, 0x0c, 0x40, 0x15,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ]);
+  const data = Decode(buffer);
+  printObjectTable(data);
 }

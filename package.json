@@ -1,18 +1,19 @@
 {
-  "name": "@cremafinance/swap-sdk",
-  "version": "2.0.2",
-  "description": "The front sdk for crema swap",
+  "name": "@currie0612/swap-sdk",
+  "version": "2.0.5",
+  "description": "the front sdk for crema swap",
   "license": "MIT",
   "scripts": {
-    "cli": "ts-node ./cli/cli.ts",
+    "cli": "ts-node ./cli/main.ts",
     "build": "rm -fr dist/ && tsc -P ./tsconfig.esm.json && tsc -P ./tsconfig.cjs.json",
     "test:unit": "yarn mocha ./test/* --require ts-node/register"
   },
   "dependencies": {
-    "@saberhq/eslint-config": "^1.12.48",
-    "@saberhq/solana-contrib": "^1.12.56",
-    "@saberhq/token-utils": "^1.12.56",
-    "@saberhq/tsconfig": "^1.12.48",
+    "@project-serum/serum": "^0.13.64",
+    "@saberhq/eslint-config": "^1.12.66",
+    "@saberhq/solana-contrib": "^1.12.66",
+    "@saberhq/token-utils": "^1.12.66",
+    "@saberhq/tsconfig": "^1.12.66",
     "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.2.0",
     "@solana/web3.js": "^1.36.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",
+    "@solana/spl-token-v2": "npm:@solana/spl-token@0.2.0",
     "@types/bn.js": "^5.1.0",
     "@types/bs58": "^4.0.1",
     "@types/chai": "^4.2.22",

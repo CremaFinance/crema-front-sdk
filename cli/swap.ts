@@ -3,8 +3,9 @@ import type { PublicKey } from "@solana/web3.js";
 import Decimal from "decimal.js";
 import * as inquire from "inquirer";
 
-import { SWAP_A2B, SWAP_B2A } from "../src";
-import { loadSwapPair, printObjectJSON, printObjectTable } from ".";
+import { SWAP_A2B, SWAP_B2A } from "../src/";
+import { loadSwapPair, pairName } from "./pair";
+import { mustGetTokenInfo, printObjectJSON, printObjectTable } from "./utils";
 
 export async function swapA2B({
   pairKey,
@@ -27,8 +28,16 @@ export async function swapA2B({
   });
   const estimateResult = swap.preSwapA(lamports);
   printObjectTable({
-    outTokenMint: swap.tokenSwapInfo.tokenAMint,
-    inTokenMint: swap.tokenSwapInfo.tokenBMint,
+    pair: pairName(
+      swap.tokenSwapInfo.tokenAMint,
+      swap.tokenSwapInfo.tokenBMint
+    ),
+    from: `${
+      mustGetTokenInfo(swap.tokenSwapInfo.tokenAMint).symbol
+    } | ${swap.tokenSwapInfo.tokenAMint.toBase58()}`,
+    to: `${
+      mustGetTokenInfo(swap.tokenSwapInfo.tokenBMint).symbol
+    } | ${swap.tokenSwapInfo.tokenBMint.toBase58()}`,
     fromATA,
     toATA,
     amountOut: swap.tokenBAmount(estimateResult.amountOut),
@@ -85,8 +94,16 @@ export async function swapB2A({
   });
   const estimateResult = swap.preSwapB(lamports);
   printObjectTable({
-    outTokenMint: swap.tokenSwapInfo.tokenBMint,
-    inTokenMint: swap.tokenSwapInfo.tokenAMint,
+    pair: pairName(
+      swap.tokenSwapInfo.tokenAMint,
+      swap.tokenSwapInfo.tokenBMint
+    ),
+    from: `${
+      mustGetTokenInfo(swap.tokenSwapInfo.tokenBMint).symbol
+    } | ${swap.tokenSwapInfo.tokenBMint.toBase58()}`,
+    to: `${
+      mustGetTokenInfo(swap.tokenSwapInfo.tokenAMint).symbol
+    } | ${swap.tokenSwapInfo.tokenAMint.toBase58()}`,
     toATA,
     fromATA,
     amountOut: swap.tokenAAmount(estimateResult.amountOut),
@@ -137,6 +154,10 @@ export async function simulateSwap({
     direct === SWAP_A2B ? swap.preSwapA(lamports) : swap.preSwapB(lamports);
   console.log("The location estimate swap reuslt(with decimals)");
   printObjectTable({
+    pair: pairName(
+      swap.tokenSwapInfo.tokenAMint,
+      swap.tokenSwapInfo.tokenBMint
+    ),
     ...estimateResult,
   });
   console.log("The simulate swap result");
