@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getATAAddress, getTokenAccount } from "@saberhq/token-utils";
+import {
+  getATAAddress,
+  getTokenAccount,
+  NATIVE_MINT,
+} from "@saberhq/token-utils";
 import type { PublicKey } from "@solana/web3.js";
 import { printTable } from "console-table-printer";
 import Decimal from "decimal.js";
@@ -111,6 +115,7 @@ export async function mintPositionFix({
   amountA,
   amountB,
   slid,
+  isDebug = true,
 }: {
   pairKey: PublicKey;
   lowerPrice: Decimal;
@@ -118,6 +123,7 @@ export async function mintPositionFix({
   amountA: Decimal | null;
   amountB: Decimal | null;
   slid: Decimal;
+  isDebug: boolean;
 }) {
   const swap = await loadSwapPair(pairKey);
   const { lowerTick, upperTick } = swap.calculateEffectivTick(
@@ -125,17 +131,66 @@ export async function mintPositionFix({
     upperPrice
   );
 
-  const userTokenA = await getATAAddress({
-    mint: swap.tokenSwapInfo.tokenAMint,
-    owner: swap.provider.wallet.publicKey,
-  });
   const userTokenB = await getATAAddress({
     mint: swap.tokenSwapInfo.tokenBMint,
     owner: swap.provider.wallet.publicKey,
   });
+  const userTokenA = await getATAAddress({
+    mint: swap.tokenSwapInfo.tokenAMint,
+    owner: swap.provider.wallet.publicKey,
+  });
 
-  const userTokenAInfo = await getTokenAccount(swap.provider, userTokenA);
-  const userTokenBInfo = await getTokenAccount(swap.provider, userTokenB);
+  let balanceA = new Decimal(0);
+  if (swap.tokenSwapInfo.tokenAMint.equals(NATIVE_MINT)) {
+    const balanceSOL = await swap.provider.connection.getBalance(
+      swap.provider.wallet.publicKey
+    );
+    balanceA =
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceA;
+  } else {
+    await getTokenAccount(swap.provider, userTokenA)
+      .then((resp) => {
+        balanceA = new Decimal(resp.amount.toString());
+      })
+      .catch(() => {
+        console.log(
+          `You don't hava token account of ${swap.tokenSwapInfo.tokenAMint.toBase58()}`
+        );
+      });
+  }
+
+  let balanceB = new Decimal(0);
+  if (swap.tokenSwapInfo.tokenBMint.equals(NATIVE_MINT)) {
+    const balanceSOL = await swap.provider.connection.getBalance(
+      swap.provider.wallet.publicKey
+    );
+    balanceB =
+      balanceSOL > 3000000 ? new Decimal(balanceSOL - 3000000) : balanceB;
+  } else {
+    await getTokenAccount(swap.provider, userTokenB)
+      .then((resp) => {
+        balanceB = new Decimal(resp.amount.toString());
+      })
+      .catch(() => {
+        console.log(
+          `You don't hava token account of ${swap.tokenSwapInfo.tokenBMint.toBase58()}`
+        );
+      });
+  }
+  if (balanceA.lessThanOrEqualTo(0)) {
+    if (isDebug) {
+      balanceA = new Decimal(1000000000000000);
+    } else {
+      throw new Error("Not enough token A");
+    }
+  }
+  if (balanceB.lessThanOrEqualTo(0)) {
+    if (isDebug) {
+      balanceB = new Decimal(1000000000000000);
+    } else {
+      throw new Error("Not enough token B");
+    }
+  }
 
   const {
     desiredAmountA,
@@ -151,8 +206,8 @@ export async function mintPositionFix({
     upperTick,
     amountA,
     amountB,
-    new Decimal(userTokenAInfo.amount.toString()),
-    new Decimal(userTokenBInfo.amount.toString()),
+    balanceA,
+    balanceB,
     slid
   );
 
@@ -551,8 +606,8 @@ export async function fetchPostion({
 
 export function decodeDepositFixTokenLayout() {
   const buffer = Buffer.from([
-    0x09, 0x00, 0x01, 0x2a, 0x01, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x19,
-    0x28, 0x30, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00, 0x30, 0x1a, 0x1e, 0x01,
+    0x09, 0x00, 0x00, 0x8e, 0x6f, 0x00, 0x00, 0x1f, 0x70, 0x00, 0x00, 0x00,
+    0x9d, 0x7b, 0x0a, 0x10, 0x09, 0x00, 0x00, 0xd9, 0x6f, 0x0c, 0x40, 0x15,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   ]);
   const data = Decode(buffer);

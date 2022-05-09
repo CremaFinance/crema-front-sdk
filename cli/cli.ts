@@ -110,6 +110,7 @@ posCommand
     "--fix",
     "If fix the token amount, default it will fix the liquity amount"
   )
+  .option("-d --debug", "Is debug, if debug will not check balance", false)
   .action((arg) => {
     catchFinallyExit(
       arg.fix
@@ -125,6 +126,7 @@ posCommand
               arg.slid !== undefined
                 ? new Decimal(arg.slid)
                 : new Decimal(0.01),
+            isDebug: arg.debug,
           })
         : swap.mintPosition({
             pairKey: new PublicKey(arg.pair),
