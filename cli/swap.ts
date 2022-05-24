@@ -54,6 +54,8 @@ export async function swapA2B({
     transactionPriceB: estimateResult.transactionPriceB,
     afterPriceA: estimateResult.afterPriceA,
     afterPriceB: estimateResult.afterPriceB,
+    revert: estimateResult.revert,
+    revertReason: estimateResult.revertReason,
   });
 
   const getConfirm = await inquire.prompt({
@@ -120,6 +122,8 @@ export async function swapB2A({
     transactionPriceB: estimateResult.transactionPriceB,
     afterPriceA: estimateResult.afterPriceA,
     afterPriceB: estimateResult.afterPriceB,
+    revert: estimateResult.revert,
+    revertReason: estimateResult.revertReason,
   });
 
   const getConfirm = await inquire.prompt({

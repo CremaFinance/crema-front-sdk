@@ -940,13 +940,13 @@ export class TokenSwap {
     const { swapSrc, swapDst } =
       direct === SWAP_A2B
         ? {
-          swapSrc: this.tokenSwapInfo.swapTokenA,
-          swapDst: this.tokenSwapInfo.swapTokenB,
-        }
+            swapSrc: this.tokenSwapInfo.swapTokenA,
+            swapDst: this.tokenSwapInfo.swapTokenB,
+          }
         : {
-          swapSrc: this.tokenSwapInfo.swapTokenB,
-          swapDst: this.tokenSwapInfo.swapTokenA,
-        };
+            swapSrc: this.tokenSwapInfo.swapTokenB,
+            swapDst: this.tokenSwapInfo.swapTokenA,
+          };
 
     const tx = new TransactionEnvelope(this.provider, [
       swapInstruction(
@@ -1006,13 +1006,13 @@ export class TokenSwap {
     const { srcMint, dstMint } =
       direct === SWAP_A2B
         ? {
-          srcMint: this.tokenSwapInfo.tokenAMint,
-          dstMint: this.tokenSwapInfo.tokenBMint,
-        }
+            srcMint: this.tokenSwapInfo.tokenAMint,
+            dstMint: this.tokenSwapInfo.tokenBMint,
+          }
         : {
-          srcMint: this.tokenSwapInfo.tokenBMint,
-          dstMint: this.tokenSwapInfo.tokenAMint,
-        };
+            srcMint: this.tokenSwapInfo.tokenBMint,
+            dstMint: this.tokenSwapInfo.tokenAMint,
+          };
     const { address: dstATA, instruction: dstATAInstruction } =
       await getOrCreateATA({
         provider: this.provider,
@@ -1551,6 +1551,8 @@ export class TokenSwap {
     transactionPriceB: Decimal;
     afterPriceA: Decimal;
     afterPriceB: Decimal;
+    revert: boolean;
+    revertReason: string;
   } {
     invariant(this.isLoaded, "The token swap not load");
     const res = calculateSwapA2B(
@@ -1576,6 +1578,9 @@ export class TokenSwap {
     const afterPriceA = res.afterPrice.pow(2);
     const afterPriceB = new Decimal(1).div(afterPriceA);
 
+    const revert = res.amountUsed.lessThan(amountIn);
+    const revertReason = revert ? "Insufficient liquidity" : "";
+
     return {
       amountOut: res.amountOut,
       amountUsed: res.amountUsed,
@@ -1587,6 +1592,8 @@ export class TokenSwap {
       impactB,
       transactionPriceA,
       transactionPriceB,
+      revert,
+      revertReason,
     };
   }
 
@@ -1606,6 +1613,8 @@ export class TokenSwap {
     transactionPriceB: Decimal;
     afterPriceA: Decimal;
     afterPriceB: Decimal;
+    revert: boolean;
+    revertReason: string;
   } {
     invariant(this.isLoaded, "The token swap not load");
     const res = calculateSwapB2A(
@@ -1630,6 +1639,9 @@ export class TokenSwap {
     const afterPriceA = res.afterPrice.pow(2);
     const afterPriceB = new Decimal(1).div(afterPriceA);
 
+    const revert = res.amountUsed.lessThan(amountIn);
+    const revertReason = revert ? "Insufficient liquidity" : "";
+
     return {
       amountOut: res.amountOut,
       amountUsed: res.amountUsed,
@@ -1641,6 +1653,8 @@ export class TokenSwap {
       transactionPriceB,
       afterPriceA,
       afterPriceB,
+      revert,
+      revertReason,
     };
   }
 
