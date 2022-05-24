@@ -132,6 +132,7 @@ export async function fetchSwapPair(
         swapPair.tokenSwapInfo.tokenBMint
       ),
       ...swapPair.tokenSwapInfo,
+      LPCount: swapPair.positions.size,
       uiPrice: swapPair.uiPrice(),
       uiReversePrice: swapPair.uiReversePrice(),
     });
