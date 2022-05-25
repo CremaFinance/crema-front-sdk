@@ -1,5 +1,5 @@
 {
-  "name": "@currie0612/swap-sdk",
+  "name": "@cremafinance/crema-sdk",
   "version": "2.0.5",
   "description": "the front sdk for crema swap",
   "license": "MIT",
@@ -9,23 +9,20 @@
     "test:unit": "yarn mocha ./test/* --require ts-node/register"
   },
   "dependencies": {
-    "@project-serum/serum": "^0.13.64",
-    "@saberhq/eslint-config": "^1.12.66",
-    "@saberhq/solana-contrib": "^1.12.66",
-    "@saberhq/token-utils": "^1.12.66",
-    "@saberhq/tsconfig": "^1.12.66",
-    "@solana/buffer-layout": "^4.0.0",
-    "@solana/spl-token": "^0.2.0",
-    "@solana/web3.js": "^1.36.0",
+    "@saberhq/solana-contrib": "~1.12.66",
+    "@saberhq/token-utils": "~1.12.66",
+    "@solana/buffer-layout": "~4.0.0",
+    "@solana/spl-token": "~0.1.8",
+    "@solana/web3.js": "1.36.0",
+    "axios": "^0.27.2",
     "bn.js": "^5.2.0",
     "bs58": "^5.0.0",
     "decimal.js": "^10.3.1",
-    "jsbi": "^4.2.0",
     "tiny-invariant": "^1.2.0"
   },
   "devDependencies": {
+    "@saberhq/tsconfig": "^1.12.66",
     "@rushstack/eslint-patch": "^1.1.0",
-    "@solana/spl-token-v2": "npm:@solana/spl-token@0.2.0",
     "@types/bn.js": "^5.1.0",
     "@types/bs58": "^4.0.1",
     "@types/chai": "^4.2.22",
@@ -60,8 +57,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "typings": "dist/index.d.ts",
-  "main": "dist/cjs/index.js",
-  "module": "dist/ems/index.js",
+  "typings": "dist/esm/src/index.d.ts",
+  "main": "dist/esm/src/index.js",
+  "module": "dist/esm/src/index.js",
   "packageManager": "yarn@3.2.0"
 }

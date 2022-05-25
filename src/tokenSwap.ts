@@ -8,11 +8,10 @@ import {
   getTokenAccount,
 } from "@saberhq/token-utils";
 import {
-  createCloseAccountInstruction,
-  createSyncNativeInstruction,
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token-v2";
+  Token
+} from "@solana/spl-token";
 import type {
   GetProgramAccountsConfig,
   TransactionInstruction,
@@ -62,7 +61,8 @@ import {
   POSITIONS_ACCOUNT_SIZE,
   TOKEN_SWAP_ACCOUNT_SIZE,
 } from "./state";
-import { getTokenAccounts } from "./util/token";
+import { getTokenAccounts, createSyncNativeInstruction } from "./util/token";
+
 
 export const INIT_KEY = new PublicKey("11111111111111111111111111111111");
 export const SWAP_B2A = 1;
@@ -1999,10 +1999,12 @@ export class TokenSwap {
       owner: this.provider.wallet.publicKey,
     });
     invariant(ataAddress.equals(checkAta), "Only allow close wrap SOL ata");
-    const tx = createCloseAccountInstruction(
+    const tx = Token.createCloseAccountInstruction(
       ataAddress,
       dest,
-      this.provider.wallet.publicKey
+      this.provider.wallet.publicKey,
+      this.provider.wallet.publicKey,
+      []
     );
     return new TransactionEnvelope(this.provider, [tx]);
   }
