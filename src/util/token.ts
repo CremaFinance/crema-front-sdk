@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+import { struct, u8 } from "@solana/buffer-layout";
 import type { AccountInfo } from "@solana/spl-token";
 import {
   AccountLayout,
@@ -13,11 +14,11 @@ import type {
   Connection,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { PublicKey } from "@solana/web3.js";
+import {
+  PublicKey,
+  TransactionInstruction as TransactionInstructionClass,
+} from "@solana/web3.js";
 import invariant from "tiny-invariant";
-
-import { struct, u8 } from '@solana/buffer-layout';
-import {TransactionInstruction as TransactionInstructionClass} from '@solana/web3.js'
 
 /**
  * Get a authority token account address
@@ -179,7 +180,6 @@ export function parseTokenAccount(
   return accountInfo;
 }
 
-
 // createSyncNativeInstruction implement （refer to spl-token2.0）
 
 /** Instructions defined by the program */
@@ -204,7 +204,7 @@ export declare enum TokenInstruction {
   SyncNative = 17,
   InitializeAccount3 = 18,
   InitializeMultisig2 = 19,
-  InitializeMint2 = 20
+  InitializeMint2 = 20,
 }
 
 export interface SyncNativeInstructionData {
@@ -212,7 +212,9 @@ export interface SyncNativeInstructionData {
 }
 
 /** TODO: docs */
-export const syncNativeInstructionData = struct<SyncNativeInstructionData>([u8('instruction')]);
+export const syncNativeInstructionData = struct<SyncNativeInstructionData>([
+  u8("instruction"),
+]);
 
 /**
  * Construct a SyncNative instruction
@@ -222,11 +224,17 @@ export const syncNativeInstructionData = struct<SyncNativeInstructionData>([u8('
  *
  * @return Instruction to add to a transaction
  */
-export function createSyncNativeInstruction(account: PublicKey, programId = TOKEN_PROGRAM_ID): TransactionInstruction {
-    const keys = [{ pubkey: account, isSigner: false, isWritable: true }];
+export function createSyncNativeInstruction(
+  account: PublicKey,
+  programId = TOKEN_PROGRAM_ID
+): TransactionInstruction {
+  const keys = [{ pubkey: account, isSigner: false, isWritable: true }];
 
-    const data = Buffer.alloc(syncNativeInstructionData.span);
-    syncNativeInstructionData.encode({ instruction: TokenInstruction.SyncNative }, data);
+  const data = Buffer.alloc(syncNativeInstructionData.span);
+  syncNativeInstructionData.encode(
+    { instruction: TokenInstruction.SyncNative },
+    data
+  );
 
-    return new TransactionInstructionClass({ keys, programId, data });
+  return new TransactionInstructionClass({ keys, programId, data });
 }

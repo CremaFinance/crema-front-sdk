@@ -7,11 +7,7 @@ import {
   getOrCreateATA,
   getTokenAccount,
 } from "@saberhq/token-utils";
-import {
-  NATIVE_MINT,
-  TOKEN_PROGRAM_ID,
-  Token
-} from "@solana/spl-token";
+import { NATIVE_MINT, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import type {
   GetProgramAccountsConfig,
   TransactionInstruction,
@@ -61,8 +57,7 @@ import {
   POSITIONS_ACCOUNT_SIZE,
   TOKEN_SWAP_ACCOUNT_SIZE,
 } from "./state";
-import { getTokenAccounts, createSyncNativeInstruction } from "./util/token";
-
+import { createSyncNativeInstruction, getTokenAccounts } from "./util/token";
 
 export const INIT_KEY = new PublicKey("11111111111111111111111111111111");
 export const SWAP_B2A = 1;
