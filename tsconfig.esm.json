@@ -7,7 +7,6 @@
     "outDir": "dist/esm"
   },
   "include": [
-    "src/",
-    "cli/"
+    "src/"
   ]
 }
